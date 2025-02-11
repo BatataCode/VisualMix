@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>TabLayout com Tema Azul Escuro</title>
+    <style>
+        body {
+            background-color: #020E5D;
+            color: #ecf0f1;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .tab {
+            display: flex;
+            background-color: #0D3B6C;
+            padding: 10px;
+            justify-content: space-around;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab button {
+            background-color: inherit;
+            border: none;
+            outline: none;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 17px;
+            color: #ecf0f1;
+            border-radius: 4px;
+        }
+
+        .tab button:hover {
+            background-color: #3b5998;
+            transform: scale(1.05);
+        }
+
+        .tab button.active {
+            background-color: #2980b9;
+        }
+
+        .tabcontent {
+            display: none;
+            padding: 0;
+            border-top: none;
+            background-color: #0D3B6C;
+            color: #ecf0f1;
+            flex-grow: 1;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        h3 {
+            color: #ecf0f1;
+        }
+
+        .add-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #FFDD57;
+            color: #002244;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+            transition: 0.3s;
+        }
+
+        .add-button:hover {
+            background-color: #FFC300;
+            transform: scale(1.1);
+        }
+        
+        #audio-list, #image-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            overflow-y: auto;
+            height: 97%;
+        }
+
+        .media-item {
+            display: flex;
+            align-items: center;
+            background-color: #1c1e26;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            position: relative;
+        }
+
+        .media-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .media-item img, .media-item audio {
+            width: 65px;
+            height: 65px;
+            border-radius: 8px;
+            margin-right: 15px;
+        }
+
+        .media-item p {
+            color: #ecf0f1;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0;
+            text-transform: capitalize;
+            flex: 1;
+        }
+
+        .delete-button {
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            transition: 0.3s;
+        }
+
+        .delete-button:hover {
+            background-color: #c0392b;
+            transform: scale(1.1);
+        }
+        
+        .scene {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.3em;
+            overflow-y: auto;
+            width: 100vw;
+            height: 100%;
+            box-sizing: border-box;
+            padding-top: 0.5em;
+            padding-bottom: 8em;
+        }
+        
+       .block {
+        width: 93vw;
+        min-height: 4em;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 1.1em;
+        border-radius: 2vw;
+        border: 0.2em solid #C0C0C0;
+        user-select: none;
+        cursor: grab;
+        gap: 0.2em;
+        font-size: 4vw;
+        font-weight: bold;
+        box-sizing: border-box;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+        .block:active {
+            cursor: grabbing;
+        }
+
+        .block input, .block select {
+            background: none;
+            border: none;
+            border-bottom: 1px solid white;
+            color: white;
+            width: 5em;
+            text-align: center;
+            margin-left: 0.3em;
+            margin-right: 0.3em;
+            font-size: 3vw;
+            font-weight: bold;
+        }
+
+        .block input:focus, .block select:focus {
+            outline: none;
+            border-bottom: 1px solid white;
+        }
+
+        .placeholder {
+            width: 90vw;
+            height: 4vw;
+            background-color: #555;
+            border-radius: 0.5vw;
+            border: 0.1em dashed white;
+            margin: 0.3em 0;
+        }
+
+        .block, .placeholder {
+            transition: transform 0.2s ease;
+        }
+        
+        .context-menu {
+    color: black;
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    padding: 5px;
+    border-radius: 5px;
+    z-index: 1000;
+}
+
+.context-menu div {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.context-menu div:hover {
+    background: #f0f0f0;
+}
+    </style>
+</head>
+<body>
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'Scripts')">Scripts</button>
+        <button class="tablinks" onclick="openTab(event, 'Sprites')">Sprites</button>
+        <button class="tablinks" onclick="openTab(event, 'Audios')">Audios</button>
+    </div>
+    <div id="Scripts" class="tabcontent">
+        <div class="scene" id="scene2" ondragover="allowDrop(event)"></div>
+        <div class="add-button" onclick="adicionarBlocos()">+</div>
+    </div>
+    <div id="Sprites" class="tabcontent">
+        <div id="image-list"></div>
+        <div id="divClick" class="add-button">+</div>
+        <input type="file" id="fileInput" style="display: none;" accept="image/*">
+    </div>
+    <div id="Audios" class="tabcontent">
+        <div id="audio-list"></div>
+        <div id="divClickAudio" class="add-button">+</div>
+        <input type="file" id="fileInputAudio" style="display: none;" accept="audio/*">
+    </div>
+    <script>
+        document.getElementById("divClick").addEventListener("click", function() {
+            document.getElementById("fileInput").click();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById("fileInput");
+            const imageList = document.getElementById('image-list');
+            const projectIndex = getQueryParam('projetoIndex');
+            const objectIndex = getQueryParam('objectIndex');
+            const directoryPath = '/storage/emulated/0/Download/VisualMix/Arquivos';
+            const filePathSprites = `${directoryPath}/sprites-${projectIndex}-${objectIndex}.json`;
+
+            fileInput.addEventListener("change", function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        const dataURL = e.target.result;
+                        const spriteName = prompt("Digite o nome da sprite:");
+                        if (spriteName) {
+                            let savedImages = [];
+                            if (Android.fileExists(filePathSprites)) {
+                                const jsonContent = Android.readFile(filePathSprites);
+                                try {
+                                    savedImages = JSON.parse(jsonContent) || [];
+                                } catch (e) {
+                                    console.error("Erro ao analisar o JSON:", e);
+                                }
+                            }
+
+                            savedImages.push({ name: spriteName, url: dataURL });
+                            Android.writeFile(filePathSprites, JSON.stringify(savedImages));
+                            displayImages();
+                        }
+                    };
+
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            function displayImages() {
+                if (imageList) {
+                    imageList.innerHTML = '';
+                    let savedImages = [];
+                    if (Android.fileExists(filePathSprites)) {
+                        const jsonContent = Android.readFile(filePathSprites);
+                        try {
+                            savedImages = JSON.parse(jsonContent) || [];
+                        } catch (e) {
+                            console.error("Erro ao analisar o JSON:", e);
+                        }
+                    }
+
+                    savedImages.forEach((item, index) => {
+                        const imageItem = document.createElement('div');
+                        imageItem.className = 'media-item';
+
+                        const img = document.createElement('img');
+                        img.src = item.url;
+
+                        const p = document.createElement('p');
+                        p.textContent = item.name;
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.className = 'delete-button';
+                        deleteButton.textContent = '×';
+                        deleteButton.addEventListener('click', () => deleteSprite(index));
+
+                        imageItem.appendChild(img);
+                        imageItem.appendChild(p);
+                        imageItem.appendChild(deleteButton);
+
+                        imageList.appendChild(imageItem);
+                    });
+                }
+            }
+
+            function deleteSprite(index) {
+                if (confirm("Tem certeza que deseja excluir esta sprite?")) {
+                    let savedImages = [];
+                    if (Android.fileExists(filePathSprites)) {
+                        const jsonContent = Android.readFile(filePathSprites);
+                        try {
+                            savedImages = JSON.parse(jsonContent) || [];
+                        } catch (e) {
+                            console.error("Erro ao analisar o JSON:", e);
+                        }
+                    }
+
+                    if (index >= 0 && index < savedImages.length) {
+                        savedImages.splice(index, 1);
+                        Android.writeFile(filePathSprites, JSON.stringify(savedImages));
+                        displayImages();
+                    }
+                }
+            }
+
+            displayImages();
+        });
+
+        // Scripts para lidar com os Áudios
+        document.getElementById("divClickAudio").addEventListener("click", function() {
+            document.getElementById("fileInputAudio").click();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInputAudio = document.getElementById("fileInputAudio");
+            const audioList = document.getElementById('audio-list');
+            const projectIndex = getQueryParam('projetoIndex');
+            const objectIndex = getQueryParam('objectIndex');
+            const directoryPath = '/storage/emulated/0/Download/VisualMix/Arquivos';
+            const filePathAudios = `${directoryPath}/audios-${projectIndex}-${objectIndex}.json`;
+
+            fileInputAudio.addEventListener("change", function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        const dataURL = e.target.result;
+                        const audioName = prompt("Digite o nome do áudio:");
+                        if (audioName) {
+                            let savedAudios = [];
+                            if (Android.fileExists(filePathAudios)) {
+                                const jsonContent = Android.readFile(filePathAudios);
+                                try {
+                                    savedAudios = JSON.parse(jsonContent) || [];
+                                } catch (e) {
+                                    console.error("Erro ao analisar o JSON:", e);
+                                }
+                            }
+
+                            savedAudios.push({ name: audioName, url: dataURL });
+                            Android.writeFile(filePathAudios, JSON.stringify(savedAudios));
+                            displayAudios();
+                        }
+                    };
+
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            function displayAudios() {
+                if (audioList) {
+                    audioList.innerHTML = '';
+                    let savedAudios = [];
+                    if (Android.fileExists(filePathAudios)) {
+                        const jsonContent = Android.readFile(filePathAudios);
+                        try {
+                            savedAudios = JSON.parse(jsonContent) || [];
+                        } catch (e) {
+                            console.error("Erro ao analisar o JSON:", e);
+                        }
+                    }
+
+                    savedAudios.forEach((item, index) => {
+                        const audioItem = document.createElement('div');
+                        audioItem.className = 'media-item';
+
+                        const audio = document.createElement('audio');
+                        audio.src = item.url;
+                        audio.controls = true;
+
+                        const p = document.createElement('p');
+                        p.textContent = item.name;
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.className = 'delete-button';
+                        deleteButton.textContent = '×';
+                        deleteButton.addEventListener('click', () => deleteAudio(index));
+
+                        audioItem.appendChild(audio);
+                        audioItem.appendChild(p);
+                        audioItem.appendChild(deleteButton);
+
+                        audioList.appendChild(audioItem);
+                    });
+                }
+            }
+
+            function deleteAudio(index) {
+                if (confirm("Tem certeza que deseja excluir este áudio?")) {
+                    let savedAudios = [];
+                    if (Android.fileExists(filePathAudios)) {
+                        const jsonContent = Android.readFile(filePathAudios);
+                        try {
+                            savedAudios = JSON.parse(jsonContent) || [];
+                        } catch (e) {
+                            console.error("Erro ao analisar o JSON:", e);
+                        }
+                    }
+
+                    if (index >= 0 && index < savedAudios.length) {
+                        savedAudios.splice(index, 1);
+                        Android.writeFile(filePathAudios, JSON.stringify(savedAudios));
+                        displayAudios();
+                    }
+                }
+            }
+
+            displayAudios();
+        });
+
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+    </script>
+    <script src="Arquivos Js/tabLayout.js"></script>
+    <script src="Arquivos Js/ajustesBlocos.js"></script>
+</body>
+</html>

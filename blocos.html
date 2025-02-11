@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Selecionar Blocos</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #020E5D;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: white;
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+    }
+
+    .buttons {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: 0.3em;
+        padding: 0.5em;
+        background-color: #000;
+        z-index: 100;
+    }
+
+    .buttons button {
+        padding: 0.8em;
+        border: none;
+        border-radius: 0.5em;
+        font-size: 3vw;
+        cursor: pointer;
+        flex: 1;
+    }
+
+    .scene {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.3em;
+        overflow-y: auto;
+        padding: 4em 1em 1em;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    .block {
+        width: 93vw;
+        min-height: 4em;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 1.1em;
+        border-radius: 2vw;
+        border: 0.2em solid #C0C0C0;
+        user-select: none;
+        cursor: grab;
+        gap: 0.2em;
+        font-size: 4vw;
+        font-weight: bold;
+        box-sizing: border-box;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .block:active { cursor: grabbing; }
+
+    .block input, .block select {
+        background: none;
+        border: none;
+        border-bottom: 1px solid white;
+        color: white;
+        width: 5em;
+        text-align: center;
+        font-size: 3vw;
+        font-weight: bold;
+    }
+
+    .block input:focus, .block select:focus { outline: none; }
+
+    /* Cores dos blocos */
+    .cor1 { background-color: #2F4F4F; }
+    .cor2 { background-color: #005227; }
+    .cor3 { background-color: #2313a7; }
+    .cor4 { background-color: #795300; }
+    .cor5 { background-color: #9c0720; }
+
+    /* Cores dos botões */
+    .btn1 { background-color: #2F4F4F; color: white; }
+    .btn2 { background-color: #005227; color: white; }
+    .btn3 { background-color: #2313a7; color: white; }
+    .btn4 { background-color: #795300; color: white; }
+    .btn5 { background-color: #9c0720; color: white; }
+    .btn-todos { background-color: #C0C0C0; color: black; }
+
+</style>
+</head>
+<body>
+
+<!-- Botões para selecionar categorias -->
+<div class="buttons">
+    <button class="btn1" onclick="filtrarBlocos('cor1')">Cena</button>
+    <button class="btn2" onclick="filtrarBlocos('cor2')">Objetos</button>
+    <button class="btn3" onclick="filtrarBlocos('cor3')">Texto</button>
+    <button class="btn4" onclick="filtrarBlocos('cor4')">Eventos</button>
+    <button class="btn5" onclick="filtrarBlocos('cor5')">Variáveis</button>
+    <button class="btn-todos" onclick="filtrarBlocos('')">Todos</button>
+</div>
+
+  <div class="scene" id="scene1">
+        <!-- Blocos Cor 1 -->
+        <div class="block cor1" draggable="true" id="block1">quando a cena começar</div>
+        <div class="block cor1" draggable="true" id="block2">fim cena começar</div>
+        <div class="block cor1" draggable="true" id="block39"> adicionar script<input type="text" value="alert('hola, mundo');" id="script"> no index <input type="text" value="0" id="index"></div>
+        <div class="block cor1" draggable="true" id="block40"> executar script<input type="text" value="0" id="index"></div>
+        
+        <!-- Blocos Cor 2 -->
+        <div class="block cor2" draggable="true" id="block3"> novo objeto <input type="text" value="objeto 1" id="nome"> raio da bordas <input type="text" value="15" id="radius"> </div>
+        <div class="block cor2" draggable="true" id="block4"> ajustar <input type="text" value="objeto 1" id="nome"> altura <input type="text" value="50" id="altura"> largura <input type="text" value="50" id="largura"> </div>
+        <div class="block cor2" draggable="true" id="block12"> alterar tamanho <input type="text" value="objeto 1" id="nome"> tamanho <input type="text" value="50" id="tamanho"> </div>
+        <div class="block cor2" draggable="true" id="block5"> mudar cor <input type="text" value="objeto 1" id="nome"> cor <input type="text" value="white" id="cor"> </div>
+        <div class="block cor2" draggable="true" id="block13"> cor da borda <input type="text" value="objeto 1" id="nome"> cor <input type="text" value="red" id="cor"> </div>
+        <div class="block cor2" draggable="true" id="block44"> esconder <input type="text" value="objeto 1" id="nome"></div>
+        <div class="block cor2" draggable="true" id="block45"> mostrar <input type="text" value="objeto 1" id="nome"></div>
+        <div class="block cor2" draggable="true" id="block6"> adicionar textura <input type="text" value="objeto 1" id="nome"> sprite <input type="text" value="sprite 1" id="textura"> </div>
+        <div class="block cor2" draggable="true" id="block7"> posição do objeto <input type="text" value="objeto 1" id="nome"> x <input type="text" value="0" id="x"> y <input type="text" value="0" id="y"> </div>
+        <div class="block cor2" draggable="true" id="block43"> z-objeto <input type="text" value="objeto 1" id="nome"><input type="text" value="1" id="index"> </div>
+        <div class="block cor2" draggable="true" id="block27"> teleportar <input type="text" value="objeto 1" id="nome"> </div>
+        <div class="block cor2" draggable="true" id="block15"> direção <input type="text" value="objeto 1" id="nome"> ângulo <input type="text" value="90" id="angulo"> </div>
+        <div class="block cor2" draggable="true" id="block41"> rotacionar <input type="text" value="objeto 1" id="nome"> graus <input type="text" value="90" id="graus"> </div>
+        <div class="block cor2" draggable="true" id="block19"> mover <input type="text" value="objeto 1" id="nome"> passos <input type="text" value="10" id="passos"> </div>
+        <div class="block cor2" draggable="true" id="block16"> opacidade <input type="text" value="objeto 1" id="nome"> <input type="text" value="100" id="opacidade"> % </div>
+        <div class="block cor2" draggable="true" id="block17"> sombra <input type="text" value="objeto 1" id="nome"> x <input type="text" value="10" id="offsetX"> y <input type="text" value="10" id="offsetY"> borrão <input type="text" value="5" id="blur"> cor <input type="text" value="rgba(0, 0, 0, 0.5)" id="cor"> </div>
+        <div class="block cor2" draggable="true" id="block29"> cor de fundo <input type="text" value="#000000" id="cor"> </div>
+
+        <!-- Blocos Cor 3 -->
+        <div class="block cor3" draggable="true" id="block8"> novo texto <input type="text" value="texto 1" id="IdTexto"> conteúdo <input type="text" value="hola, mundo!" id="conteudo"> </div>
+        <div class="block cor3" draggable="true" id="block9"> posição do texto <input type="text" value="texto 1" id="IdTexto"> x <input type="text" value="0" id="x"> y <input type="text" value="0" id="y"> </div>
+        <div class="block cor3" draggable="true" id="block10"> cor do texto <input type="text" value="texto 1" id="IdTexto"> cor <input type="text" value="blue" id="cor"> </div>
+        <div class="block cor3" draggable="true" id="block11"> tamanho do texto <input type="text" value="texto 1" id="IdTexto"> tamanho <input type="text" value="40" id="tamanho"> </div>
+        <div class="block cor3" draggable="true" id="block13"> fonte do texto <input type="text" value="texto 1" id="IdTexto"> fonte <input type="text" value="arial" id="fonte"> </div>
+
+        <!-- Blocos Cor 4 -->
+        <div class="block cor4" draggable="true" id="block20"> aguardar <input type="text" value="2" id="aguarde">$egundos</div>
+        <div class="block cor4" draggable="true" id="block21"> quando tocar <input type="text" value="objeto 1" id="nome"> </div>
+        <div class="block cor4" draggable="true" id="block22"> fim tocar </div>
+        <div class="block cor4" draggable="true" id="block35">se <input type="text" value="5 > 3" id="condicao"> for true</div>
+        <div class="block cor4" draggable="true" id="block36"> fim se </div>
+        <div class="block cor4" draggable="true" id="block28"> loop até <input type="text" value="5 > 3" id="condicao"> for true </div>
+        <div class="block cor4" draggable="true" id="block29"> fim loop </div>
+        <div class="block cor4" draggable="true" id="block233"> loop infinito </div>
+        <div class="block cor4" draggable="true" id="block34"> fim loop infinito </div>
+        <div class="block cor4" draggable="true" id="block31"> quando <input type="text" value="5 > 3" id="condicao"> for true </div>
+        <div class="block cor4" draggable="true" id="block32"> fim condicão </div>
+
+        <!-- Blocos Cor 5 -->
+        <div class="block cor5" draggable="true" id="block23"> criar variavel <input type="text" value="variável 1" id="nomeVar"> valor <input type="text" value="2" id="valorVar"> </div>
+        <div class="block cor5" draggable="true" id="block24"> alterar variavel <input type="text" value="variável 1" id="nomeVar"> valor <input type="text" value="5" id="valorVar"> </div>
+        <div class="block cor5" draggable="true" id="block25"> salvar dados <input type="text" value="chave" id="chave"> valor <input type="text" value="Teste" id="valor"> </div>
+        <div class="block cor5" draggable="true" id="block26"> apagar dados <input type="text" value="chave" id="chave"> </div>
+        <div class="block cor5" draggable="true" id="block30"> enviar dados <input type="text" value="'link.com'" id="link"> parâmetro <input type="text" value="a:10,b:20" id="parametro"></div>
+    <div class="block cor5" draggable="true" id="block37">play audio<input type="text" value="audio 1" id="audio"></div>
+    <div class="block cor5" draggable="true" id="block38">parar audios</div><div class="block cor5" draggable="true" id="block42">volume do audio<input type="text" value="100" id="volume">%</div>
+    </div>
+<script>
+const blockPairs = {
+            block1: 'block2',
+            block21: 'block22',
+        };
+
+        document.querySelectorAll('.block').forEach(block => {
+            block.addEventListener('dragstart', function(e) {
+                const blockData = {
+                    id: block.id,
+                    content: block.innerHTML,
+                    values: getInputValues(block),
+                    backgroundColor: getComputedStyle(block).backgroundColor
+                };
+
+                const endBlockId = blockPairs[block.id];
+                const endBlock = document.getElementById(endBlockId);
+
+                if (endBlock) {
+                    blockData.endBlock = {
+                        id: endBlock.id,
+                        content: endBlock.innerHTML,
+                        values: getInputValues(endBlock),
+                        backgroundColor: getComputedStyle(endBlock).backgroundColor
+                    };
+                }
+
+                e.dataTransfer.setData('text/plain', JSON.stringify(blockData));
+                block.classList.add('dragging');
+                window.history.back();
+            });
+
+            block.addEventListener('dragend', function() {
+                block.classList.remove('dragging');
+            });
+        });
+
+        function getInputValues(block) {
+            const inputValues = [];
+            const inputs = block.querySelectorAll('input');
+            const selects = block.querySelectorAll('select');
+
+            inputs.forEach(input => {
+                inputValues.push({ type: 'input', value: input.value });
+            });
+
+            selects.forEach(select => {
+                inputValues.push({ type: 'select', value: select.value });
+            });
+
+            return inputValues;
+        }
+        
+        function filtrarBlocos(cor) {
+    const blocos = document.querySelectorAll('.block');
+
+    blocos.forEach(bloco => {
+        bloco.style.display = cor === '' || bloco.classList.contains(cor) ? 'flex' : 'none';
+    });
+}
+</script>
+
+</body>
+</html>

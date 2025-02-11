@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <title>Executar Blocos</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: black;
+            color: white;
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+            font-family: Arial, Helvetica, sans-serif;
+            position: relative;
+        }
+        
+        #fpsCounter {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            z-index: 999;
+        }
+        
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="meuCanvas"></canvas>
+    <div id="fpsCounter">FPS: loading</div>
+    <script src="Arquivos Js/executarJogo.js"></script>
+    <script>
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const filePath = '/storage/emulated/0/Download/VisualMix/Arquivos/executar-scripts.json';
+        
+        // Verificar se o arquivo foi lido corretamente
+        const blocksData = Android.readFile(filePath);
+        if (!blocksData) {
+            throw new Error('Não foi possível ler o arquivo ou o arquivo está vazio.');
+        }
+        const blocks = JSON.parse(blocksData);
+
+        if (!Array.isArray(blocks)) {
+            throw new Error('Dados do arquivo não são uma lista de blocos.');
+        }
+
+        await executarSequenciaBlocos(blocks);
+
+    } catch (error) {
+        console.error('Erro:', error.message);
+    }
+});
+
+async function executarSequenciaBlocos(blocks) {
+    let i = 0;
+    const condicoes = [];
+
+    while (i < blocks.length) {
+        const bloco = blocks[i];
+
+        if (bloco.content.includes('repetir')) {
+            const vezesValue = getValueOrVariable(bloco, 'vezes');
+            if (vezesValue) {
+                const vezes = parseInt(vezesValue);
+                let blocoRepetir = [];
+                i++;
+                
+                // Coletar os blocos a serem repetidos
+                while (i < blocks.length && !blocks[i].content.includes('fim repetir')) {
+                    blocoRepetir.push(blocks[i]);
+                    i++;
+                }
+
+                if (i < blocks.length && blocks[i].content.includes('fim repetir')) {
+                    for (let j = 0; j < vezes; j++) {
+                        console.log(`Executando repetição ${j + 1} de ${vezes}`);
+                        await executarSequenciaBlocos(blocoRepetir.slice());
+                        await aguardarExecucaoCompleta();
+                    }
+                    i++;
+                } else {
+                    console.error("Bloco 'repetir' encontrado sem 'Fim repetir' correspondente.");
+                }
+            }
+        } else if (bloco.content.includes('loop até')) {
+            const condicaoValue = getValueOrVariable(bloco, 'condicao');
+            if (condicaoValue) {
+                const condicao = condicaoValue;
+                let blocoRepetir = [];
+                i++;
+                while (i < blocks.length && !blocks[i].content.includes('fim loop')) {
+                    blocoRepetir.push(blocks[i]);
+                    i++;
+                }
+                if (i < blocks.length && blocks[i].content.includes('fim loop')) {
+                    while (!avaliarCondicao(condicao)) {
+                        await executarSequenciaBlocos(blocoRepetir.slice());
+                        await aguardarExecucaoCompleta();
+                    }
+                    i++;
+                } else {
+                    console.error("Bloco 'repetir até' encontrado sem 'Fim repetir até' correspondente.");
+                }
+            }
+        } else if (bloco.content.includes('loop infinito')) {
+            let blocoSempre = [];
+            i++;
+            while (i < blocks.length && !blocks[i].content.includes('fim loop infinito')) {
+                blocoSempre.push(blocks[i]);
+                i++;
+            }
+            if (i < blocks.length && blocks[i].content.includes('fim loop infinito')) {
+                async function executarLoopInfinito() {
+                    while (true) {
+                        await executarSequenciaBlocos(blocoSempre.slice());
+                        await aguardarExecucaoCompleta();
+                    }
+                }
+                
+                executarLoopInfinito().catch(error => {
+                    console.error("Erro ao executar o loop infinito:", error);
+                });
+            } else {
+                console.error("Bloco 'loop infinito' encontrado sem 'Fim loop infinito' correspondente.");
+            }
+        } else if (bloco.content.includes('se')) {
+            const condicaoValue = getValueOrVariable(bloco, 'condicao');
+            if (condicaoValue) {
+                const condicao = condicaoValue;
+                let blocoSe = [];
+                i++;
+                while (i < blocks.length && !blocks[i].content.includes('fim se')) {
+                    blocoSe.push(blocks[i]);
+                    i++;
+                }
+                if (i < blocks.length && blocks[i].content.includes('fim se')) {
+                    if (avaliarCondicao(condicao)) {
+                        await executarSequenciaBlocos(blocoSe);
+                    }
+                } else {
+                    console.error("Bloco 'se' encontrado sem 'Fim se' correspondente.");
+                }
+            }
+        } else if (bloco.content.includes('quando tocar')) {           
+    const objetoValue = getValueOrVariable(bloco, 'nome');           
+    if (objetoValue) {           
+        const objeto = objetos.find(obj => obj.nome === objetoValue);           
+        if (objeto) {           
+            const canvas = document.getElementById('meuCanvas');          
+                      
+            // Função que retorna uma Promise para aguardar o toque ou o toque longo        
+            const esperarToque = () => new Promise((resolve) => {          
+                let tocando = false;  // Para verificar se o toque está ativo        
+        
+                // Evento quando o toque começa (touchstart)        
+                canvas.addEventListener('touchstart', function onTouchStart(event) {          
+                    const retangulo = canvas.getBoundingClientRect();           
+                    const touchX = event.touches[0].clientX - retangulo.left;           
+                    const touchY = event.touches[0].clientY - retangulo.top;           
+                            
+                    if (touchX >= objeto.x && touchX <= objeto.x + objeto.largura && touchY >= objeto.y && touchY <= objeto.y + objeto.altura) {          
+                        tocando = true;        
+                        console.log("Toque iniciado no objeto!");          
+                    }          
+                });          
+        
+                // Evento enquanto o toque é mantido (touchmove)        
+                canvas.addEventListener('touchmove', function onTouchMove(event) {          
+                    if (tocando) {        
+                        // Aqui o código continua executando enquanto o toque está ativo        
+                        console.log("Executando enquanto o toque é mantido...");        
+                        // Não fazemos nada a não ser continuar executando os blocos        
+                    }        
+                });        
+        
+                // Evento quando o toque termina (touchend)        
+                canvas.addEventListener('touchend', function onTouchEnd() {          
+                    if (tocando) {        
+                        console.log("Toque finalizado no objeto!");        
+                        tocando = false;  // Finaliza o toque        
+                        resolve(); // Resolve a Promise quando o toque for finalizado        
+                    }        
+                });          
+            });        
+        
+            // Continuar aguardando o toque enquanto necessário        
+            while (true) {          
+                await esperarToque(); // Esperar até que o toque ocorra          
+                let i = blocks.indexOf(bloco) + 1;           
+                const blocoTocar = [];           
+                while (i < blocks.length && !blocks[i].content.includes('fim tocar')) {           
+                    blocoTocar.push(blocks[i]);           
+                    i++;           
+                }          
+        
+                if (i < blocks.length && blocks[i].content.includes('fim tocar')) {          
+                    await executarSequenciaBlocos(blocoTocar);          
+                } else {          
+                    alert("Bloco 'quando tocar' encontrado sem 'Fim tocar' correspondente.");          
+                }          
+            }          
+        }          
+    } else {          
+        console.error(`Objeto ${objetoValue} não encontrado.`);          
+    }          
+} else if (bloco.content.includes('quando a cena começar')) {
+            const blocoCena = [];
+            i++;
+            while (i < blocks.length && !blocks[i].content.includes('fim cena começar')) {
+                blocoCena.push(blocks[i]);
+                i++;
+            }
+            if (i < blocks.length && blocks[i].content.includes('fim cena começar')) {
+                executarSequenciaBlocos(blocoCena.slice());
+            } else {
+                console.error("Bloco 'quando a cena começar' encontrado sem 'Fim cena começar' correspondente.");
+            }
+        } else if (bloco.content.includes('Quando criar objeto')) {
+            const blocoSequencialClone = [];
+            i++;
+            while (i < blocks.length && !blocks[i].content.includes('Fim do objeto')) {
+                blocoSequencialClone.push(blocks[i]);
+                i++;
+            }
+            if (i < blocks.length && blocks[i].content.includes('Fim do objeto')) {
+                await executarSequenciaBlocos(blocoSequencialClone);
+            } else {
+                console.error("Bloco 'Quando criar objeto' encontrado sem 'Fim do objeto' correspondente.");
+            }
+        } else if (bloco.content.includes('quando')) {
+            const condicaoValue = getValueOrVariable(bloco, 'condicao');
+            if (condicaoValue) {
+                const condicao = condicaoValue;
+                let blocoCondicao = [];
+                i++;
+                while (i < blocks.length && !blocks[i].content.includes('fim condicão')) {
+                    blocoCondicao.push(blocks[i]);
+                    i++;
+                }
+                if (i < blocks.length && blocks[i].content.includes('fim condicão')) {
+                    condicoes.push({ condicao, blocoCondicao });
+                } else {
+                    console.error("Bloco 'quando' encontrado sem 'fim condicão' correspondente.");
+                }
+            }
+        } else {
+            await interpretarBloco(bloco);
+        }
+        i++;
+    }
+
+    const promises = condicoes.map(async ({ condicao, blocoCondicao }) => {
+        while (true) {
+            if (avaliarCondicao(condicao)) {
+                await executarSequenciaBlocos(blocoCondicao.slice());
+                while (avaliarCondicao(condicao)) {
+                    await aguardarSegundos(0.1);
+                }
+            }
+            await aguardarSegundos(0.1);
+        }
+    });
+
+    await Promise.all(promises);
+}
+
+    
+var objetos = [];
+var textos = [];
+
+function ajustarCanvas() {
+    const canvas = document.getElementById('meuCanvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    desenharObjetosETextos();
+}
+
+window.addEventListener('resize', ajustarCanvas);
+ajustarCanvas();
+
+class NovoObjeto {
+    constructor(nome, radius) {
+        this.nome = nome;
+        this.x = 0;
+        this.y = 0;
+        this.largura = 50;
+        this.altura = 50;
+        this.radius = radius;
+        this.cor = '#118DFF';
+        this.borderColor = 'white';
+        this.textura = null;
+        this.texturaImagem = null;
+        this.opacidade = 1.0;
+        this.sombra = { offsetX: 0, offsetY: 0, blur: 0, color: 'transparent' };
+        this.angulo = 0;
+        this.camada = 0;
+        this.visivel = true;  // Nova propriedade para controlar a visibilidade
+    }
+
+    criarObjeto(contexto) {
+        if (!this.visivel) return;  // Não desenha o objeto se não for visível
+
+        contexto.globalAlpha = this.opacidade;
+        if (this.sombra.color !== 'transparent') {
+            contexto.shadowOffsetX = this.sombra.offsetX;
+            contexto.shadowOffsetY = this.sombra.offsetY;
+            contexto.shadowBlur = this.sombra.blur;
+            contexto.shadowColor = this.sombra.color;
+        }
+
+        if (this.texturaImagem) {
+            contexto.drawImage(this.texturaImagem, this.x, this.y, this.largura, this.altura);
+        } else {
+            contexto.beginPath();
+            let raio = Math.min(this.radius, this.largura / 2, this.altura / 2);
+            contexto.moveTo(this.x + raio, this.y);
+            contexto.lineTo(this.x + this.largura - raio, this.y);
+            contexto.quadraticCurveTo(this.x + this.largura, this.y, this.x + this.largura, this.y + raio);
+            contexto.lineTo(this.x + this.largura, this.y + this.altura - raio);
+            contexto.quadraticCurveTo(this.x + this.largura, this.y + this.altura, this.x + this.largura - raio, this.y + this.altura);
+            contexto.lineTo(this.x + raio, this.y + this.altura);
+            contexto.quadraticCurveTo(this.x, this.y + this.altura, this.x, this.y + this.altura - raio);
+            contexto.lineTo(this.x, this.y + raio);
+            contexto.quadraticCurveTo(this.x, this.y, this.x + raio, this.y);
+            contexto.fillStyle = this.cor;
+            contexto.fill();
+            contexto.lineWidth = 2;
+            contexto.strokeStyle = this.borderColor;
+            contexto.stroke();
+            contexto.closePath();
+        }
+
+        contexto.globalAlpha = 1.0;
+        contexto.shadowOffsetX = 0;
+        contexto.shadowOffsetY = 0;
+        contexto.shadowBlur = 0;
+        contexto.shadowColor = 'transparent';
+    }
+
+    alterarTamanho(novaLargura, novaAltura) {
+        const deltaLargura = novaLargura - this.largura;
+        const deltaAltura = novaAltura - this.altura;
+
+        // Ajusta a posição para compensar a mudança de tamanho
+        this.x -= deltaLargura / 2;
+        this.y -= deltaAltura / 2;
+
+        this.largura = novaLargura;
+        this.altura = novaAltura;
+    }
+
+    Tamanho(tamanho) {
+        const deltaLargura = tamanho - this.largura;
+        const deltaAltura = tamanho - this.altura;
+
+        this.x -= deltaLargura / 2;
+        this.y -= deltaAltura / 2;
+
+        this.largura = tamanho;
+        this.altura = tamanho;
+    }
+
+    alterarCor(novaCor) {
+        this.cor = novaCor;
+    }
+
+    alterarCorBorda(novaCor) {
+        this.borderColor = novaCor;
+    }
+
+    centralizar(canvasWidth, canvasHeight) {
+        this.x = canvasWidth / 2 - this.largura / 2;
+        this.y = canvasHeight / 2 - this.altura / 2;
+    }
+
+    mudarPosicao(novoX, novoY) {
+        const canvas = document.getElementById('meuCanvas');
+        this.x = novoX + canvas.width / 2 - this.largura / 2;
+        this.y = -novoY + canvas.height / 2 - this.altura / 2;
+    }
+
+    adicionarTextura(srcTextura) {
+        this.textura = srcTextura;
+        const img = new Image();
+        img.src = this.textura;
+        img.onload = () => {
+            this.texturaImagem = img;
+            desenharObjetosETextos();
+        };
+    }
+
+    alterarOpacidade(novaOpacidade) {
+        this.opacidade = novaOpacidade;
+    }
+
+    alterarSombra(offsetX, offsetY, blur, color) {
+        this.sombra = { offsetX, offsetY, blur, color };
+    }
+
+    moverPassos(passos) {
+        const velocidadeBase = 50; // Velocidade base em pixels por segundo
+        const fatorVelocidade = 1.5; // Fator que aumenta a velocidade com mais passos
+
+        const anguloEmRadianos = (this.angulo * Math.PI) / 180;
+        const destinoX = this.x + passos * Math.cos(anguloEmRadianos);
+        const destinoY = this.y + passos * Math.sin(anguloEmRadianos);
+
+        const inicioX = this.x;
+        const inicioY = this.y;
+
+        const distancia = Math.sqrt(Math.pow(destinoX - inicioX, 2) + Math.pow(destinoY - inicioY, 2));
+
+        const velocidade = velocidadeBase * Math.pow(fatorVelocidade, passos / 100);
+
+        const duracao = (distancia / velocidade) * 1000;
+
+        const tempoInicio = performance.now();
+
+        const mover = (tempoAtual) => {
+            const progresso = Math.min((tempoAtual - tempoInicio) / duracao, 1);
+
+            this.x = inicioX + (destinoX - inicioX) * progresso;
+            this.y = inicioY + (destinoY - inicioY) * progresso;
+
+            desenharObjetosETextos(); // Redesenha os objetos
+
+            if (progresso < 1) {
+                requestAnimationFrame(mover);
+            }
+        };
+
+        requestAnimationFrame(mover);
+    }
+
+    alterarAngulo(novoAngulo) {
+        this.angulo = novoAngulo;
+    }
+
+    rotacionar(contexto, angulo) {
+        contexto.save();
+        contexto.translate(this.x + this.largura / 2, this.y + this.altura / 2);
+        contexto.rotate((angulo * Math.PI) / 180);
+        contexto.translate(-(this.x + this.largura / 2), -(this.y + this.altura / 2));
+        this.criarObjeto(contexto);
+        contexto.restore();
+    }
+
+    posicaoAleatoria() {
+        const minX = -200;
+        const maxX = 200;
+        const minY = -360;
+        const maxY = 360;
+        const x = Math.random() * (maxX - minX) + minX;
+        const y = Math.random() * (maxY - minY) + minY;
+        this.x = x;
+        this.y = y;
+    }
+
+    alterarCamada(novaCamada) {
+        this.camada = novaCamada;
+    }
+
+    // Métodos para esconder e mostrar o objeto
+    esconder() {
+        this.visivel = false;
+    }
+
+    mostrar() {
+        this.visivel = true;
+    }
+}
+
+class NovoTexto { 
+constructor(idTexto, conteudo) { 
+this.idTexto = idTexto; 
+this.conteudo = conteudo; 
+this.tamanhoFonte = 30; 
+this.cor = '#FFFFFF'; 
+this.x = 0; 
+this.y = 0;
+this.fonte = 'Arial'; 
+}
+
+desenharTexto(contexto) {
+    contexto.font = `${this.tamanhoFonte}px ${this.fonte}`;
+    contexto.fillStyle = this.cor;
+    contexto.textAlign = 'center';
+    contexto.textBaseline = 'middle';
+    contexto.fillText(this.conteudo, this.x, this.y);
+}
+
+alterarTamanho(novoTamanho) {
+    this.tamanhoFonte = novoTamanho;
+}
+
+alterarCor(novaCor) {
+    this.cor = novaCor;
+}
+
+alterarFonte(novaFonte) {
+    this.fonte = novaFonte;
+}
+
+mudarPosicao(novoX, novoY) {
+    const canvas = document.getElementById('meuCanvas');
+    this.x = novoX + canvas.width / 2;
+    this.y = canvas.height / 2 - novoY;
+}
+
+}
+
+async function interpretarBloco(bloco) {
+    if (bloco.content.includes('novo objeto')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');
+        const radiusValue = getValueOrVariable(bloco, 'radius');
+
+        if (objetoValue && radiusValue) {
+            const nome = objetoValue;
+            const radius = Number(radiusValue);
+            if (!objetos.some(obj => obj.nome === nome)) {
+                const objeto = new NovoObjeto(nome, radius);
+                objeto.centralizar(window.innerWidth, window.innerHeight);
+                objetos.push(objeto);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('adicionar textura')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');  
+        const texturaValue = getValueOrVariable(bloco, 'textura');
+        
+        const caminho = '/storage/emulated/0/Download/VisualMix/Arquivos';
+        const arquivo = caminho + '/allSprites.json';
+        
+        if (objetoValue && texturaValue) {
+            const objeto = objetos.find(obj => obj.nome === objetoValue);
+            const urlTexturasString = Android.readFile(arquivo);
+            const urlTexturas = JSON.parse(urlTexturasString);  
+            const texturaObj = urlTexturas.find(urlObj => urlObj.name === texturaValue);
+            
+            if (objeto && texturaObj) {
+                objeto.adicionarTextura(texturaObj.url);
+                desenharObjetosETextos();
+            } else {
+                console.log("Objeto ou textura não encontrado.");
+            }
+        }
+    } else if (bloco.content.includes('play audio')) {
+        const audioValue = getValueOrVariable(bloco, 'audio');  
+
+        const caminho = '/storage/emulated/0/Download/VisualMix/Arquivos';
+        const arquivo = caminho + '/allAudios.json';
+        
+        if (audioValue) {
+            const urlAudiosString = Android.readFile(arquivo);
+            const urlAudios = JSON.parse(urlAudiosString);  
+            const audioObj = urlAudios.find(audio => audio.name === audioValue);
+            if (audioObj) {
+            const audioPath = audioObj.url;
+            Android.playAudio(audioPath);
+            } else {
+            console.log("Objeto ou textura não encontrado.");
+            }
+        }
+    } else if (bloco.content.includes('parar audios')) {
+    Android.stopAudio();
+} else if (bloco.content.includes('volume do audio')) {
+    const volumeValue = getValueOrVariable(bloco, 'volume');
+    
+    if(volumeValue) {
+    const volume = Number(volumeValue);
+    Android.setVolume(volume);
+    }
+} else if (bloco.content.includes('alterar tamanho')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');
+        const tamanhoValue = getValueOrVariable(bloco, 'tamanho');
+
+        if (objetoValue && tamanhoValue) {
+            const tamanho = Number(tamanhoValue);
+            const objeto = objetos.find(obj => obj.nome === objetoValue);
+            if (objeto) {
+                objeto.Tamanho(tamanho);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('cor da borda')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');
+        const borderColorValue = getValueOrVariable(bloco, 'cor');
+
+        if (objetoValue && borderColorValue) {
+            const novaCor = borderColorValue;
+            const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+            if (objeto) {
+                objeto.alterarCorBorda(novaCor);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('ajustar')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');
+        const larguraValue = getValueOrVariable(bloco, 'largura');
+        const alturaValue = getValueOrVariable(bloco, 'altura');
+
+        if (objetoValue && larguraValue && alturaValue) {
+            const largura = Number(larguraValue);
+            const altura = Number(alturaValue);
+            const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+            if (objeto) {
+                objeto.alterarTamanho(largura, altura);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('mudar cor')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');
+        const corValue = getValueOrVariable(bloco, 'cor');
+
+        if (objetoValue && corValue) {
+            const novaCor = corValue;
+            const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+            if (objeto) {
+                objeto.alterarCor(novaCor);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('posição do objeto')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');
+        const xValue = getValueOrVariable(bloco, 'x');
+        const yValue = getValueOrVariable(bloco, 'y');
+
+        if (objetoValue && xValue && yValue) {
+            const novoX = Number(xValue);
+            const novoY = Number(yValue);
+            const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+            if (objeto) {
+                objeto.mudarPosicao(novoX, novoY);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('direção')) {
+    const objetoValue = getValueOrVariable(bloco, 'nome');
+    const anguloValue = getValueOrVariable(bloco, 'angulo');
+
+    if (objetoValue && anguloValue) {
+        const angulo = Number(anguloValue);
+        const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+        if (objeto) {
+            objeto.alterarAngulo(angulo);
+            desenharObjetosETextos();
+        }
+    }
+} else if (bloco.content.includes('rotacionar')) {
+    const objetoValue = getValueOrVariable(bloco, 'nome');
+    const anguloValue = getValueOrVariable(bloco, 'angulo');
+
+    if (objetoValue && anguloValue) {
+        const angulo = Number(anguloValue);
+        const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+        if (objeto) {
+            objeto.rotacionar(objeto, angulo)
+            desenharObjetosETextos();
+        }
+    }
+} else if (bloco.content.includes('mover')) {
+    const objetoValue = getValueOrVariable(bloco, 'nome');
+    const passosValue = getValueOrVariable(bloco, 'passos');
+    
+    if (objetoValue && passosValue) {
+        const passos = Number(passosValue);
+        const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+        if (objeto) {
+            objeto.moverPassos(passos);
+            desenharObjetosETextos();
+        }
+    }
+} else if (bloco.content.includes('teleportar')) {
+                    const objetoValue = getValueOrVariable(bloco, 'nome');
+                    if (objetoValue) {
+                        const objeto = objetos.find(obj => obj.nome === objetoValue);
+                    }
+      if (objeto) {
+            objeto.posicaoAleatoria();
+            desenharObjetosETextos();
+        }
+                } else if (bloco.content.includes('z-objeto')) {
+                    const objetoValue = getValueOrVariable(bloco, 'nome');
+                    const camadaValue = getValueOrVariable(bloco, 'index');
+                    if (objetoValue && camadaValue) {
+                        const objeto = objetos.find(obj => obj.nome === objetoValue);
+                        const camada = camadaValue;
+                        if(objeto && camada) {
+                        
+                        objeto.alterarCamada(camada);
+                        desenharObjetosETextos();
+                        }
+                    }
+                } else if (bloco.content.includes('novo texto')) { 
+    const idTextoValue = getValueOrVariable(bloco, 'IdTexto'); 
+    const conteudoValue = getValueOrVariable(bloco, 'conteudo');
+
+    if (idTextoValue && conteudoValue) { 
+        const texto = textos.find(txt => txt.idTexto === idTextoValue);
+
+        if (texto) { 
+            texto.conteudo = conteudoValue; // Atualiza o conteúdo se já existir
+        } else { 
+            const novoTexto = new NovoTexto(idTextoValue, conteudoValue); 
+            novoTexto.mudarPosicao(0, 0); 
+            textos.push(novoTexto); 
+        }
+
+        desenharObjetosETextos(); 
+    } 
+} else if (bloco.content.includes('tamanho do texto')) {
+        const idTextoValue = getValueOrVariable(bloco, 'IdTexto');
+        const tamanhoFonteValue = getValueOrVariable(bloco, 'tamanho');
+        
+        if (idTextoValue && tamanhoFonteValue) {
+            const tamanhoFonte = Number(tamanhoFonteValue);
+            const texto = textos.find(txt => txt.idTexto === idTextoValue);
+            
+            if (texto) {
+                texto.alterarTamanho(tamanhoFonte);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('cor do texto')) {
+        const idTextoValue = getValueOrVariable(bloco, 'IdTexto');
+        const corValue = getValueOrVariable(bloco, 'cor');
+        
+        if (idTextoValue && corValue) {
+            const novaCor = corValue;
+            const texto = textos.find(txt => txt.idTexto === idTextoValue);
+            
+            if (texto) {
+                texto.alterarCor(novaCor);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('fonte do texto')) {
+        const idTextoValue = getValueOrVariable(bloco, 'IdTexto');
+        const fonteValue = getValueOrVariable(bloco, 'fonte');
+        
+        if (idTextoValue && fonteValue) {
+            const novaFonte = fonteValue;
+            const texto = textos.find(txt => txt.idTexto === idTextoValue);
+            
+            if (texto) {
+                texto.alterarFonte(novaFonte);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('posição do texto')) {
+        const idTextoValue = getValueOrVariable(bloco, 'IdTexto');
+        const xValue = getValueOrVariable(bloco, 'x');
+        const yValue = getValueOrVariable(bloco, 'y');
+        
+        if (idTextoValue && xValue && yValue) {
+            const novoX = Number(xValue);
+            const novoY = Number(yValue);
+            const texto = textos.find(txt => txt.idTexto === idTextoValue);
+            
+            if (texto) {
+                texto.mudarPosicao(novoX, novoY);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('opacidade')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');
+        const opacidadeValue = getValueOrVariable(bloco, 'opacidade');
+
+        if (objetoValue && opacidadeValue) {
+            const opacidade = Number(opacidadeValue);
+            const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+            if (objeto) {
+                objeto.alterarOpacidade(opacidade);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('esconder')) {
+    const objetoValue = getValueOrVariable(bloco, 'nome');
+
+    if (objetoValue) {
+        const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+        if (objeto) {
+            objeto.esconder();  // Chama o método para esconder o objeto
+            desenharObjetosETextos();
+        }
+    }
+} else if (bloco.content.includes('mostrar')) {
+    const objetoValue = getValueOrVariable(bloco, 'nome');
+
+    if (objetoValue) {
+        const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+        if (objeto) {
+            objeto.mostrar();  // Chama o método para mostrar o objeto
+            desenharObjetosETextos();
+        }
+    }
+} else if (bloco.content.includes('sombra')) {
+        const objetoValue = getValueOrVariable(bloco, 'nome');
+        const offsetXValue = getValueOrVariable(bloco, 'offsetX');
+        const offsetYValue = getValueOrVariable(bloco, 'offsetY');
+        const blurValue = getValueOrVariable(bloco, 'blur');
+        const colorValue = getValueOrVariable(bloco, 'cor');
+
+        if (objetoValue && offsetXValue && offsetYValue && blurValue && colorValue) {
+            const offsetX = Number(offsetXValue);
+            const offsetY = Number(offsetYValue);
+            const blur = Number(blurValue);
+            const color = colorValue;
+            const objeto = objetos.find(obj => obj.nome === objetoValue);
+
+            if (objeto) {
+                objeto.alterarSombra(offsetX, offsetY, blur, color);
+                desenharObjetosETextos();
+            }
+        }
+    } else if (bloco.content.includes('aguardar')) {
+                    const tempoValue = getValueOrVariable(bloco, 'aguarde');
+                    if (tempoValue) {
+                        const tempo = parseFloat(tempoValue);
+                        await aguardarSegundos(tempo);
+            }
+      } else if (bloco.content.includes('criar variavel')) {
+                    const nomeVarValue = bloco.values.find(value => value.id === 'nomeVar');
+                    const valorVarValue = getValueOrVariable(bloco, 'valorVar');
+                    if (nomeVarValue && valorVarValue) {
+                        const nomeVar = nomeVarValue.value;
+                        const valorVar = valorVarValue;
+                        criarVariavel(nomeVar, valorVar);
+                    }
+                } else if (bloco.content.includes('alterar variavel')) {
+                    const nomeVarValue = getValueOrVariable(bloco, 'nomeVar');
+                    const valorVarValue = getValueOrVariable(bloco, 'valorVar');
+                    if (nomeVarValue && valorVarValue) {
+                        const nomeVar = nomeVarValue;
+                        const valorVar = parseFloat(valorVarValue);
+                        alterarVariavel(nomeVar, valorVar);
+        }
+    } else if (bloco.content.includes('salvar dados')) {
+                    const nomeChave = getValueOrVariable(bloco, 'chave');
+                    const valorChave = getValueOrVariable(bloco, 'valor');
+                    if (nomeChave && valorChave) {
+                        const chave = nomeChave;
+                        const valor = valorChave;
+                        salvarDados(chave, valor);
+                    }
+         } else if (bloco.content.includes('apagar dados')) {
+                    const nomeChave = getValueOrVariable(bloco, 'chave');
+                    if (nomeChave) {
+                        const chave = nomeChave;
+                        apagarDados(chave);
+           }
+      } else if (bloco.content.includes('cor de fundo')) {
+                    const nomeCor = getValueOrVariable(bloco, 'cor');
+                    if (nomeCor) {
+                        const cor = nomeCor;
+                        corDeFundo(cor);
+           }
+      } else if (bloco.content.includes('enviar dados')) {
+                    const linkValue = getValueOrVariable(bloco, 'link');
+                    const parametroValue = getValueOrVariable(bloco, 'parametro');
+                    if (linkValue && parametroValue) {
+                        const link = linkValue;
+                        const parametro = parseData(parametroValue);
+                        sendData(link, parametro);
+                    }
+         } else if (bloco.content.includes('adicionar script')) {
+                    const scriptValue = getValueOrVariable(bloco, 'script');
+                    const indexValue = getValueOrVariable(bloco, 'index');
+                    
+                    if (scriptValue && indexValue) {
+                        const script = scriptValue;
+                        const index = indexValue;
+                        adicionarScript(script, index)
+                    }
+         } else if (bloco.content.includes('executar script')) {
+                    const indexValue = getValueOrVariable(bloco, 'index');
+                    
+                    if (indexValue) {
+                        const index = indexValue;
+                        executarScript(index);
+                    }
+         }
+}
+
+function desenharObjetosETextos() {
+    const canvas = document.getElementById('meuCanvas');
+    const contexto = canvas.getContext('2d');
+
+    contexto.clearRect(0, 0, canvas.width, canvas.height);
+    objetos.sort((a, b) => a.camada - b.camada);
+
+    objetos.forEach(objeto => {
+        objeto.criarObjeto(contexto);
+    });
+
+    textos.forEach(texto => {
+        texto.desenharTexto(contexto);
+    });
+}
+        
+function getValueOrVariable(bloco, id) {
+    const value = bloco.values.find(value => value.id === id);
+    if (value) {
+        const rawValue = value.value;
+
+        if (/[\+\-\*\/]/.test(rawValue)) {
+            try {
+                const expression = rawValue.replace(/\$[a-zA-Z_]\w*/g, match => window[match.substring(1)]);
+                return eval(expression);
+            } catch (e) {
+                console.error('Erro ao avaliar expressão:', rawValue, e);
+                return null;
+            }
+        }
+
+        if (rawValue.startsWith('$')) {
+            return window[rawValue.substring(1)];
+        } else if (rawValue.startsWith('lista:')) {
+            const parts = rawValue.split(':');
+            const listaName = parts[1];
+            const indexRaw = parts[2];
+
+            if (indexRaw === 'todos') {
+                return getListaValue(listaName, 'todos');
+            } else {
+                const index = indexRaw.startsWith('$') ? window[indexRaw.substring(1)] : parseInt(indexRaw);
+                return getListaValue(listaName, index);
+            }
+        } else if (rawValue.startsWith('valorDados(') && rawValue.endsWith(')')) {
+            let chave = rawValue.substring(11, rawValue.length - 1);
+            if (chave.startsWith('$')) {
+                chave = window[chave.substring(1)];
+            }
+            return obterValo(chave);
+        } else if (rawValue.startsWith('respostaWeb(') && rawValue.endsWith(')')) {
+            let parametros = rawValue.substring(12, rawValue.length - 1).split(',');
+            let web = parametros[0].trim();
+            let chave = parametros[1] ? parametros[1].trim() : "";
+
+            if (web.startsWith('$')) {
+                web = window[web.substring(1)];
+            }
+
+            if (chave.startsWith('$')) {
+                chave = window[chave.substring(1)];
+            }
+
+            if (web && chave) {
+                obter(web, chave);
+                if (DadosDoSiteGlobal[chave] !== undefined) {
+                    return DadosDoSiteGlobal[chave];
+                }
+            }
+        } else if (rawValue.startsWith('letra(') && rawValue.endsWith(')')) {
+            let texto = rawValue.substring(6, rawValue.length - 1);
+            let index;
+
+            if (texto.includes(',')) {
+                const parts = texto.split(',');
+                texto = parts[0].trim();
+                index = parts[1].trim();
+
+                if (texto.startsWith('$')) {
+                    texto = window[texto.substring(1)];
+                }
+
+                if (index.startsWith('$')) {
+                    index = window[index.substring(1)];
+                }
+
+                index = parseInt(index, 10);
+            }
+
+            return Letra(texto, index);
+        } else if (rawValue.startsWith('comprimento(') && rawValue.endsWith(')')) {
+            let texto = rawValue.substring(12, rawValue.length - 1);
+            if (texto.startsWith('$')) {
+                texto = window[texto.substring(1)];
+            }
+            return ComprimentoTexto(texto);
+        } else if (rawValue.startsWith('juntar(') && rawValue.endsWith(')')) {
+    let parametros = rawValue.substring(7, rawValue.length - 1).split(',');
+    let texto1 = parametros[0].trim();
+    let texto2 = parametros[1] ? parametros[1].trim() : "";
+
+    if (texto1.startsWith('$')) {
+        const nomeVariavel1 = texto1.substring(1);
+        texto1 = window[nomeVariavel1] !== undefined ? window[nomeVariavel1] : null;
+    }
+
+    if (texto2.startsWith('$')) {
+        const nomeVariavel2 = texto2.substring(1);
+        texto2 = window[nomeVariavel2] !== undefined ? window[nomeVariavel2] : null;
+    }
+
+    texto1 = String(texto1);
+    texto2 = String(texto2);
+
+    return Juntar(texto1, texto2);
+} else {
+            return rawValue;
+        }
+    }
+}
+
+const scripts = [];
+
+function adicionarScript(script, index) {
+    if (index >= 0 && index <= scripts.length) {
+        scripts.splice(index, 0, script);
+    } else {
+    
+    }
+}
+
+function executarScript(index) {
+    const script = scripts[index];
+    if (script) {
+        try {
+            eval(script);
+        } catch (e) {
+        
+        }
+    }
+}
+
+function Juntar(texto1, texto2) {
+  const regex = /\$([a-zA-Z_][a-zA-Z0-9_]*)/g;
+
+  function substituirVariavel(texto) {
+    return texto.replace(regex, (match, varName) => {
+      if (window[varName] !== undefined) {
+        return window[varName];
+      }
+      return match;
+    });
+  }
+
+  texto1 = substituirVariavel(texto1);
+  texto2 = substituirVariavel(texto2);
+
+if(texto1 && texto2) {
+  return texto1 + texto2;
+   }
+}
+
+function ComprimentoTexto(texto) {
+  const regex = /\$([a-zA-Z_][a-zA-Z0-9_]*)/g;
+  
+  function substituirVariavel(texto) {
+    return texto.replace(regex, (match, varName) => {
+      if (window[varName] !== undefined) {
+        return window[varName];
+      }
+      return match;
+    });
+  }
+
+  if (texto) {
+    texto = substituirVariavel(texto);
+    return texto.length;
+  }
+}
+
+function Letra(texto, index) {
+  const regex = /\$([a-zA-Z_][a-zA-Z0-9_]*)/g;
+
+  function substituirVariavel(valor) {
+    if (typeof valor === 'string') {
+      return valor.replace(regex, (match, varName) => {
+        if (window[varName] !== undefined) {
+          return window[varName];
+        }
+        return match;
+      });
+    }
+    return valor; // Se não for string, retorna o valor como está
+  }
+
+  texto = substituirVariavel(texto);
+  index = substituirVariavel(index);
+
+  // Certifica-se de que o index é um número
+  if (typeof index === 'string') {
+    index = parseInt(index, 10);
+  }
+
+  if (isNaN(index) || index < 0 || index >= texto.length) {
+    return null;
+  }
+
+  return texto[index];
+}
+
+let DadosDoSiteGlobal = {};
+
+async function obter(url, chave) {
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            
+        }
+
+        const data = await response.json();
+
+        // Verificar se 'data' é um objeto antes de processá-lo
+        if (data === undefined || data === null) {
+ 
+        }
+
+        if (Array.isArray(data)) {
+            DadosDoSiteGlobal[chave] = data.map(item => {
+                if (typeof item === 'object' && item !== null) {
+                    return Object.values(item).join(',');
+                } else {
+                    return item;
+                }
+            }).join(',');
+        } else {
+            if (typeof data === 'object' && data !== null) {
+                DadosDoSiteGlobal[chave] = Object.values(data).join(',');
+            } else {
+                DadosDoSiteGlobal[chave] = data;
+            }
+        }
+
+        return data;
+    } catch (error) {
+        DadosDoSiteGlobal = {};
+        return null;
+    }
+}
+
+async function fetchData(url) {
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            
+        }
+
+        return await response.json();
+    } catch (error) {
+        return null;
+    }
+}
+
+async function sendData(url, data) {
+    try {
+        const parsedData = typeof data === 'string' ? parseData(data) : data;
+
+        const response = await fetch(url, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(parsedData)
+        });
+
+        if (!response.ok) {
+           
+        }
+    } catch (error) {
+       
+    }
+}
+
+function parseData(input) {
+    const data = {};
+    const pairs = input.split(',').map(pair => pair.trim());
+    pairs.forEach(pair => {
+        let [key, value] = pair.split(':').map(part => part.trim());
+        if (value.startsWith('$')) {
+            const varName = value.slice(1);
+            if (window[varName] !== undefined) {
+                value = window[varName];
+            } else {
+                value = null;
+            }
+        }
+        if (key && value !== null) {
+            data[key] = isNaN(value) ? value : parseFloat(value);
+        }
+    });
+    return data;
+}
+
+function obterValo(chave) {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const projeto = urlParams.get('projetoIndex');
+
+        // Caminho do arquivo que deseja ler
+        const diretorio = '/storage/emulated/0/Download/VisualMix/Arquivos/';
+        const fileName = chave + "-" + projeto + '.txt';
+        const arquivoo = diretorio + '/' + fileName;
+        const valorString = Android.readFile(arquivoo);
+        
+        if (valorString !== null) {
+            return JSON.parse(valorString);
+            console.log(JSON.parse(valorString))
+        } else {
+            return '0';
+        }
+    } catch (error) {
+        console.error("Erro ao obter valor: ", error);
+        return null;
+    }
+}
+
+function salvarDados(chave, valor) {
+        try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const projeto = urlParams.get('projetoIndex');
+        const valorString = JSON.stringify(valor);
+
+        const diretorio = '/storage/emulated/0/Download/VisualMix/Arquivos/';
+        
+        if (!Android.directoryExists(diretorio)) {
+                Android.createDirectory(diretorio, "");
+            }
+            
+        const fileName = chave + "-" + projeto + '.txt';
+    Android.writeFile(diretorio + fileName, valorString);
+} catch (error) {
+    
+    }
+}
+
+function apagarDados(chave) {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const projeto = urlParams.get('projetoIndex');
+
+        const diretorio = '/storage/emulated/0/Download/VisualMix/Arquivos/';
+        
+        if (!Android.directoryExists(diretorio)) {
+                Android.createDirectory(diretorio, "");
+            }
+            
+        const fileName = chave + "-" + projeto + '.txt';
+        const filePath = diretorio + '/' + fileName;
+        if(Android.fileExists(filePath)) {
+        Android.deleteFile(filePath);
+        }
+    } catch (error) {
+        console.error("Erro ao apagar dados: ", error);
+    }
+}
+        
+       function getListaValue(nome, index) {
+            if (window.listas && window.listas[nome]) {
+                if (index === 'todos') {
+                    return window.listas[nome];
+                } else {
+                    return window.listas[nome][index];
+                }
+            }
+            return null;
+        }
+            
+            function CriarLista(nome) {
+                if (!window.listas) {
+                window.listas = {};
+            }
+            if (!window.listas[nome]) {
+                window.listas[nome] = [];
+            }
+            }
+            
+            function AddItemNaLista(nomeLista, item) {
+            if (window.listas && window.listas[nomeLista]) {
+                window.listas[nomeLista].push(item);
+            }
+        }
+        
+       function adicionarItemNaColuna(nome, coluna, item) {
+    if (!window.listas || !window.listas[nome]) {
+        return;
+    }
+
+    // Verifica se a lista está vazia e adiciona um item vazio se necessário
+    if (window.listas[nome].length === 0) {
+        window.listas[nome].push([]);
+    }
+
+    window.listas[nome].forEach((listItem, index) => {
+        if (!Array.isArray(listItem)) {
+            window.listas[nome][index] = [];
+        }
+        window.listas[nome][index][coluna] = item;
+    });
+}
+        
+        function removerItemDaLista(nome, index) {
+            if (window.listas && window.listas[nome]) {
+                if (index >= 0 && index < window.listas[nome].length) {
+                    const removedItem = window.listas[nome].splice(index, 1);
+                }
+            }
+        }
+        
+            function avaliarCondicao(condicao) {
+                return eval(condicao);
+            }
+
+            function aguardarSegundos(segundos) {
+                const delay = segundos * 1000;
+                return new Promise(resolve => setTimeout(resolve, delay));
+            }
+
+function criarVariavel(nomeVar, valorVar) {
+  if (!isNaN(valorVar) && valorVar !== '') {
+    valorVar = Number(valorVar);
+  }
+  window[nomeVar] = valorVar;
+}
+
+function alterarVariavel(nomeVar, novoValor) { 
+if (!window.hasOwnProperty(nomeVar)) { 
+window[nomeVar] = 0; 
+}
+window[nomeVar] += novoValor;
+}
+        
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let fpsDisplay = document.getElementById('fpsCounter');
+
+        function calculateFPS() {
+            const now = performance.now();
+            frameCount++;
+
+            const elapsed = now - lastFrameTime;
+            if (elapsed >= 1000) {
+                const fps = (frameCount / elapsed) * 1000;
+                fpsDisplay.textContent = `FPS: ${Math.round(fps)}`;
+                frameCount = 0;
+                lastFrameTime = now;
+            }
+
+            requestAnimationFrame(calculateFPS);
+        }
+
+        requestAnimationFrame(calculateFPS);
+        
+         async function aguardarExecucaoCompleta() {
+    await aguardarSegundos(0.1);
+}
+
+    function corDeFundo(corSelecionada) {
+        document.body.style.backgroundColor = corSelecionada;
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Editor</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        textarea {
+            width: 80%;
+            height: 45%;
+            font-size: 1.2em;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            border: 1px solid #C0C0C0;
+            border-radius: 5px;
+            resize: none;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: #006691;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const projetoIndex = urlParams.get('projetoIndex');
+            const scriptIndex = urlParams.get('scriptIndex');
+            const blockUID = urlParams.get('blockUID');
+            const index = parseInt(urlParams.get('index'), 10);
+            const directoryPath = '/storage/emulated/0/Download/VisualMix/Arquivos/';
+            const scriptKey = directoryPath + `scripts-${projetoIndex}-${scriptIndex}.json`;
+            
+            try {
+                // Carregar o bloco do localStorage ou similar
+                const blockDataString = Android.readFile(scriptKey);
+                const blockData = JSON.parse(blockDataString);
+                const block = blockData.find(b => b.id === blockUID);
+
+                if (block) {
+                    const value = block.values[index]?.value || '';
+                    document.getElementById('inputValue').value = value;
+
+                    document.getElementById('saveButton').addEventListener('click', function() {
+                        if (block.values[index]) {
+                            block.values[index].value = document.getElementById('inputValue').value;
+                            saveBlocksToFilePath(projetoIndex, scriptIndex, blockData);
+                            window.history.back();
+                        } else {
+                            alert('Índice inválido no bloco.');
+                        }
+                    });
+                } else {
+                    alert('Bloco não encontrado.');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar ou processar dados do bloco:', error);
+                alert('Ocorreu um erro ao carregar os dados.');
+            }
+        });
+
+        function saveBlocksToFilePath(projetoIndex, scriptIndex, blockData) {
+            const directoryPath = '/storage/emulated/0/Download/VisualMix/Arquivos/';
+            const scriptKey = directoryPath + `scripts-${projetoIndex}-${scriptIndex}.json`;
+
+            try {
+                // Salva os blocos como uma string JSON no arquivo
+                Android.writeFile(scriptKey, JSON.stringify(blockData));
+            } catch (error) {
+                console.error('Erro ao salvar dados no arquivo:', error);
+                alert('Ocorreu um erro ao salvar os dados.');
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Script Editor</h1>
+    <textarea id="inputValue" placeholder="Digite sua lógica aqui..."></textarea>
+    <button id="saveButton">Salvar</button>
+</body>
+</html>

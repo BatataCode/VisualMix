@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Criar Novo Projeto</title>
+    <link rel="stylesheet" href="Arquivos Css/novoProjeto.css">
+    <script src="Arquivos Js/novoProjeto.js" defer></script>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .icon-preview {
+            width: 120px;
+            height: 120px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 5%;
+            cursor: pointer; /* Adiciona o cursor de clique */
+        }
+
+        .file-input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Criar Novo Projeto</h2>
+
+        <input type="text" id="projectName" placeholder="Nome do Projeto" required>
+        <select id="orientation" required>
+            <option value="" disabled selected>Escolha a Orientação</option>
+            <option value="portrait">Retrato</option>
+            <option value="landscape">Paisagem</option>
+        </select>
+
+        <div class="file-input-container">
+            <div class="icon-preview" id="iconPreview"></div>
+            <input type="file" id="projectIcon" accept="image/*" onchange="previewIcon(event)">
+        </div>
+        <button onclick="createProject()">Criar Projeto</button>
+    </div>
+</body>
+</html>
