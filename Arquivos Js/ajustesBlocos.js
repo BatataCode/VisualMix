@@ -296,28 +296,24 @@ function getInputValues(block) {
 function createPlaceholder() {
     const placeholder = document.createElement('div');
     placeholder.className = 'placeholder';
-    placeholder.style.height = '50px';  // Define uma altura padrão para o placeholder
+    placeholder.style.height = '6vh';  
+    placeholder.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+    placeholder.style.border = '2px dashed #999';
+    placeholder.style.margin = '3px 0';
     return placeholder;
 }
 
 dropzone.addEventListener('dragover', function(event) {
     event.preventDefault();
+    
     if (!placeholder) {
         placeholder = createPlaceholder();
     }
 
     const rect = dropzone.getBoundingClientRect();
     const offsetY = event.clientY - rect.top;
-
-    let beforeNode = null;
-    const children = Array.from(dropzone.children).filter(child => child.classList.contains('block'));
-    for (let child of children) {
-        const childRect = child.getBoundingClientRect();
-        if (offsetY < childRect.top + childRect.height / 2) {
-            beforeNode = child;
-            break;
-        }
-    }
+    
+    let beforeNode = getBlockBeforeNode(offsetY);
 
     if (beforeNode) {
         dropzone.insertBefore(placeholder, beforeNode);
@@ -334,8 +330,7 @@ dropzone.addEventListener('dragover', function(event) {
 });
 
 dropzone.addEventListener('dragleave', function(event) {
-    const relatedTarget = event.relatedTarget;
-    if (!relatedTarget || !dropzone.contains(relatedTarget)) {
+    if (!dropzone.contains(event.relatedTarget)) {
         if (placeholder) {
             placeholder.remove();
             placeholder = null;
@@ -346,7 +341,6 @@ dropzone.addEventListener('dragleave', function(event) {
 dropzone.addEventListener('drop', function(event) {
     event.preventDefault();
     
-    // Remover o placeholder antes de qualquer outra ação
     if (placeholder) {
         placeholder.remove();
         placeholder = null;
@@ -354,30 +348,28 @@ dropzone.addEventListener('drop', function(event) {
 
     const data = event.dataTransfer.getData('text/plain');
     
-    // Verificar se os dados transferidos contêm o ID de um bloco
     let block;
     try {
         const blockData = JSON.parse(data);
         const blockUID = generateUUID();
-        block = createBlock(blockUID, blockData);  // Cria um novo bloco
+        block = createBlock(blockUID, blockData);
     } catch {
-        block = document.getElementById(data); // Se não, busca pelo ID diretamente
+        block = document.getElementById(data);
     }
 
-    if (!block) return; // Garante que o bloco exista
+    if (!block) return;
 
     const rect = dropzone.getBoundingClientRect();
     const offsetY = event.clientY - rect.top;
     const beforeNode = getBlockBeforeNode(offsetY);
 
-    // Insere o bloco na posição correta, antes de outro bloco ou no final
     if (beforeNode) {
         dropzone.insertBefore(block, beforeNode);
     } else {
         dropzone.appendChild(block);
     }
 
-    saveBlocksToLocalStorage();  // Salva a nova ordem
+    saveBlocksToLocalStorage();
 });
 
 function copyBlock(block) {
