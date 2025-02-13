@@ -11,5 +11,5 @@ window.location.href = 'novoProjeto.html';
 }
 
 function Discord() {
-window.location.href = 'https://discord.gg/XeRuyzHb2k';
+window.location.href = 'https://discord.gg/8ftdtDxA';
 }
