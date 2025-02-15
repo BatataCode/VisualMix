@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Criar Objeto</title>
+    <link rel="stylesheet" href="Arquivos Css/novoObjeto.css">
+    <script src="Arquivos Js/novoObjeto.js" defer></script>
+</head>
+<body>
+    <div class="input-container">
+        <label for="objectName" id="labelNome">Nome do Objeto:</label>
+        <input type="text" id="objectName" placeholder="Digite o nome do objeto">
+        <div class="icon-preview" id="iconPreview"></div>
+        <input type="file" id="objectIcon" accept="image/*" onchange="previewIcon(event)" style="display:none">
+
+        <button class="submit-button" onclick="createObject()">Criar Objeto</button>
+    </div>
+</body>
+</html>
