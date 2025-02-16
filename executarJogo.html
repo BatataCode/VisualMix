@@ -156,68 +156,92 @@ async function executarSequenciaBlocos(blocks) {
                     console.error("Bloco 'se' encontrado sem 'Fim se' correspondente.");
                 }
             }
-        } else if (bloco.content.includes('quando tocar')) {           
-    const objetoValue = getValueOrVariable(bloco, 'nome');           
-    if (objetoValue) {           
-        const objeto = objetos.find(obj => obj.nome === objetoValue);           
-        if (objeto) {           
-            const canvas = document.getElementById('meuCanvas');          
-                      
-            // Função que retorna uma Promise para aguardar o toque ou o toque longo        
-            const esperarToque = () => new Promise((resolve) => {          
-                let tocando = false;  // Para verificar se o toque está ativo        
-        
-                // Evento quando o toque começa (touchstart)        
-                canvas.addEventListener('touchstart', function onTouchStart(event) {          
-                    const retangulo = canvas.getBoundingClientRect();           
-                    const touchX = event.touches[0].clientX - retangulo.left;           
-                    const touchY = event.touches[0].clientY - retangulo.top;           
-                            
-                    if (touchX >= objeto.x && touchX <= objeto.x + objeto.largura && touchY >= objeto.y && touchY <= objeto.y + objeto.altura) {          
-                        tocando = true;        
-                        console.log("Toque iniciado no objeto!");          
-                    }          
-                });          
-        
-                // Evento enquanto o toque é mantido (touchmove)        
-                canvas.addEventListener('touchmove', function onTouchMove(event) {          
-                    if (tocando) {        
-                        // Aqui o código continua executando enquanto o toque está ativo        
-                        console.log("Executando enquanto o toque é mantido...");        
-                        // Não fazemos nada a não ser continuar executando os blocos        
-                    }        
-                });        
-        
-                // Evento quando o toque termina (touchend)        
-                canvas.addEventListener('touchend', function onTouchEnd() {          
-                    if (tocando) {        
-                        console.log("Toque finalizado no objeto!");        
-                        tocando = false;  // Finaliza o toque        
-                        resolve(); // Resolve a Promise quando o toque for finalizado        
-                    }        
-                });          
-            });        
-        
-            // Continuar aguardando o toque enquanto necessário        
-            while (true) {          
-                await esperarToque(); // Esperar até que o toque ocorra          
-                let i = blocks.indexOf(bloco) + 1;           
-                const blocoTocar = [];           
-                while (i < blocks.length && !blocks[i].content.includes('fim tocar')) {           
-                    blocoTocar.push(blocks[i]);           
-                    i++;           
-                }          
-        
-                if (i < blocks.length && blocks[i].content.includes('fim tocar')) {          
-                    await executarSequenciaBlocos(blocoTocar);          
-                } else {          
-                    alert("Bloco 'quando tocar' encontrado sem 'Fim tocar' correspondente.");          
-                }          
-            }          
-        }          
-    } else {          
-        console.error(`Objeto ${objetoValue} não encontrado.`);          
-    }          
+        } else if (bloco.content.includes('quando tocar')) {
+    const objetoValue = getValueOrVariable(bloco, 'nome');
+    if (objetoValue) {
+        const objeto = objetos.find(obj => obj.nome === objetoValue);
+        if (objeto) {
+            const canvas = document.getElementById('meuCanvas');
+
+            let tocando = false;
+            let longPressTimeout = null;
+            let interval = null;
+            let tocouRapido = false;
+            let cicloAtivo = false;
+
+            // Evento de toque no canvas
+            const onTouchStart = function (event) {
+                if (cicloAtivo) return;
+
+                const retangulo = canvas.getBoundingClientRect();
+                const touchX = event.touches[0].clientX - retangulo.left;
+                const touchY = event.touches[0].clientY - retangulo.top;
+
+                if (touchX >= objeto.x && touchX <= objeto.x + objeto.largura && touchY >= objeto.y && touchY <= objeto.y + objeto.altura) {
+                    tocando = true;
+                    console.log("Toque iniciado no objeto!");
+
+                    cicloAtivo = true;
+
+                    longPressTimeout = setTimeout(() => {
+                        interval = setInterval(() => {
+                            console.log("Executando enquanto o toque é mantido...");
+                            let i = blocks.indexOf(bloco) + 1;
+                            const blocoTocar = [];
+                            while (i < blocks.length && !blocks[i].content.includes('fim tocar')) {
+                                blocoTocar.push(blocks[i]);
+                                i++;
+                            }
+
+                            if (i < blocks.length && blocks[i].content.includes('fim tocar')) {
+                                executarSequenciaBlocos(blocoTocar);
+                            } else {
+                                alert("Bloco 'quando tocar' encontrado sem 'Fim tocar' correspondente.");
+                            }
+                        }, 100);
+                    }, 30);
+
+                    tocouRapido = true;
+                }
+            };
+
+            const onTouchEnd = function () {
+                if (tocando) {
+                    console.log("Toque finalizado no objeto!");
+                    tocando = false;
+                    clearTimeout(longPressTimeout);
+                    clearInterval(interval);
+
+                    if (tocouRapido) {
+                        console.log("Executando toque simples...");
+                        let i = blocks.indexOf(bloco) + 1;
+                        const blocoTocar = [];
+                        while (i < blocks.length && !blocks[i].content.includes('fim tocar')) {
+                            blocoTocar.push(blocks[i]);
+                            i++;
+                        }
+
+                        if (i < blocks.length && blocks[i].content.includes('fim tocar')) {
+                            executarSequenciaBlocos(blocoTocar);
+                        } else {
+                            alert("Bloco 'quando tocar' encontrado sem 'Fim tocar' correspondente.");
+                        }
+
+                        tocouRapido = false;
+                    }
+
+                    cicloAtivo = false;
+                }
+            };
+
+            // Adiciona ouvintes de eventos
+            canvas.addEventListener('touchstart', onTouchStart);
+            canvas.addEventListener('touchend', onTouchEnd);
+
+        }
+    } else {
+        console.error(`Objeto ${objetoValue} não encontrado.`);
+    }
 } else if (bloco.content.includes('quando a cena começar')) {
             const blocoCena = [];
             i++;
