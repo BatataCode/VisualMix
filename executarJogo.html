@@ -169,6 +169,30 @@ async function executarSequenciaBlocos(blocks) {
             let tocouRapido = false;
             let cicloAtivo = false;
 
+            // Função para verificar se o toque está dentro do objeto considerando a rotação
+            const estaDentroDoObjeto = (touchX, touchY) => {
+                // Calcular as coordenadas do ponto de toque em relação ao centro do objeto
+                const centroX = objeto.x + objeto.largura / 2;
+                const centroY = objeto.y + objeto.altura / 2;
+
+                // Ajuste as coordenadas do toque para o sistema de coordenadas do objeto
+                const dx = touchX - centroX;
+                const dy = touchY - centroY;
+
+                // Rotacionar o ponto (dx, dy) de volta para a posição não rotacionada
+                const anguloEmRadianos = (objeto.angulo * Math.PI) / 180;
+                const rotX = dx * Math.cos(-anguloEmRadianos) - dy * Math.sin(-anguloEmRadianos);
+                const rotY = dx * Math.sin(-anguloEmRadianos) + dy * Math.cos(-anguloEmRadianos);
+
+                // Verificar se o ponto está dentro dos limites do objeto (retângulo rotacionado)
+                return (
+                    rotX >= -objeto.largura / 2 &&
+                    rotX <= objeto.largura / 2 &&
+                    rotY >= -objeto.altura / 2 &&
+                    rotY <= objeto.altura / 2
+                );
+            };
+
             // Evento de toque no canvas
             const onTouchStart = function (event) {
                 if (cicloAtivo) return;
@@ -177,7 +201,7 @@ async function executarSequenciaBlocos(blocks) {
                 const touchX = event.touches[0].clientX - retangulo.left;
                 const touchY = event.touches[0].clientY - retangulo.top;
 
-                if (touchX >= objeto.x && touchX <= objeto.x + objeto.largura && touchY >= objeto.y && touchY <= objeto.y + objeto.altura) {
+                if (estaDentroDoObjeto(touchX, touchY)) {
                     tocando = true;
                     console.log("Toque iniciado no objeto!");
 
