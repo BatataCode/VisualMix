@@ -1105,9 +1105,7 @@ const scripts = [];
 
 function adicionarScript(script, index) {
     if (index >= 0 && index <= scripts.length) {
-        scripts.splice(index, 0, script);
-    } else {
-    
+        scripts.splice(index, 0, () => eval(script)); // Armazena uma função anônima
     }
 }
 
@@ -1115,9 +1113,9 @@ function executarScript(index) {
     const script = scripts[index];
     if (script) {
         try {
-            eval(script);
+            script(); // Executa apenas quando chamado
         } catch (e) {
-        
+            console.error("Erro ao executar o script:", e);
         }
     }
 }
