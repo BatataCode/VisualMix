@@ -317,196 +317,219 @@ function ajustarCanvas() {
 window.addEventListener('resize', ajustarCanvas);
 ajustarCanvas();
 
-class NovoObjeto {
-    constructor(nome, radius) {
-        this.nome = nome;
-        this.x = 0;
-        this.y = 0;
-        this.largura = 50;
-        this.altura = 50;
-        this.radius = radius;
-        this.cor = '#118DFF';
-        this.borderColor = 'white';
-        this.textura = null;
-        this.texturaImagem = null;
-        this.opacidade = 1.0;
-        this.sombra = { offsetX: 0, offsetY: 0, blur: 0, color: 'transparent' };
-        this.angulo = 0;
-        this.camada = 0;
-        this.visivel = true;  // Nova propriedade para controlar a visibilidade
-    }
-
-    criarObjeto(contexto) {
-        if (!this.visivel) return;  // Não desenha o objeto se não for visível
-
-        contexto.globalAlpha = this.opacidade;
-        if (this.sombra.color !== 'transparent') {
-            contexto.shadowOffsetX = this.sombra.offsetX;
-            contexto.shadowOffsetY = this.sombra.offsetY;
-            contexto.shadowBlur = this.sombra.blur;
-            contexto.shadowColor = this.sombra.color;
+class NovoObjeto {  
+    constructor(nome, radius) {  
+        this.nome = nome;  
+        this.x = 0;  
+        this.y = 0;  
+        this.largura = 50;  
+        this.altura = 50;  
+        this.radius = radius;  
+        this.cor = '#118DFF';  
+        this.borderColor = 'white';  
+        this.textura = null;  
+        this.texturaImagem = null;  
+        this.opacidade = 1.0;  
+        this.sombra = { offsetX: 0, offsetY: 0, blur: 0, color: 'transparent' };  
+        this.angulo = 0;  
+        this.camada = 0;  
+        this.visivel = true;  // Nova propriedade para controlar a visibilidade  
+        this.sprites = [];  
+        this.frame = 0;  
+        this.animando = false;  
+        this.frameRate = 10;  
+        this.ultimoFrame = 0;  
+    }  
+  
+    criarObjeto(contexto) {  
+        if (!this.visivel) return;  // Não desenha o objeto se não for visível  
+  
+        contexto.globalAlpha = this.opacidade;  
+        if (this.sombra.color !== 'transparent') {  
+            contexto.shadowOffsetX = this.sombra.offsetX;  
+            contexto.shadowOffsetY = this.sombra.offsetY;  
+            contexto.shadowBlur = this.sombra.blur;  
+            contexto.shadowColor = this.sombra.color;  
         }
 
-        if (this.texturaImagem) {
-            contexto.drawImage(this.texturaImagem, this.x, this.y, this.largura, this.altura);
-        } else {
-            contexto.beginPath();
-            let raio = Math.min(this.radius, this.largura / 2, this.altura / 2);
-            contexto.moveTo(this.x + raio, this.y);
-            contexto.lineTo(this.x + this.largura - raio, this.y);
-            contexto.quadraticCurveTo(this.x + this.largura, this.y, this.x + this.largura, this.y + raio);
-            contexto.lineTo(this.x + this.largura, this.y + this.altura - raio);
-            contexto.quadraticCurveTo(this.x + this.largura, this.y + this.altura, this.x + this.largura - raio, this.y + this.altura);
-            contexto.lineTo(this.x + raio, this.y + this.altura);
-            contexto.quadraticCurveTo(this.x, this.y + this.altura, this.x, this.y + this.altura - raio);
-            contexto.lineTo(this.x, this.y + raio);
-            contexto.quadraticCurveTo(this.x, this.y, this.x + raio, this.y);
-            contexto.fillStyle = this.cor;
-            contexto.fill();
-            contexto.lineWidth = 2;
-            contexto.strokeStyle = this.borderColor;
-            contexto.stroke();
-            contexto.closePath();
-        }
-
-        contexto.globalAlpha = 1.0;
-        contexto.shadowOffsetX = 0;
-        contexto.shadowOffsetY = 0;
-        contexto.shadowBlur = 0;
-        contexto.shadowColor = 'transparent';
-    }
-
-    alterarTamanho(novaLargura, novaAltura) {
-        const deltaLargura = novaLargura - this.largura;
-        const deltaAltura = novaAltura - this.altura;
-
-        // Ajusta a posição para compensar a mudança de tamanho
-        this.x -= deltaLargura / 2;
-        this.y -= deltaAltura / 2;
-
-        this.largura = novaLargura;
-        this.altura = novaAltura;
-    }
-
-    Tamanho(tamanho) {
-        const deltaLargura = tamanho - this.largura;
-        const deltaAltura = tamanho - this.altura;
-
-        this.x -= deltaLargura / 2;
-        this.y -= deltaAltura / 2;
-
-        this.largura = tamanho;
-        this.altura = tamanho;
-    }
-
-    alterarCor(novaCor) {
-        this.cor = novaCor;
-    }
-
-    alterarCorBorda(novaCor) {
-        this.borderColor = novaCor;
-    }
-
-    centralizar(canvasWidth, canvasHeight) {
-        this.x = canvasWidth / 2 - this.largura / 2;
-        this.y = canvasHeight / 2 - this.altura / 2;
-    }
-
-    mudarPosicao(novoX, novoY) {
-        const canvas = document.getElementById('meuCanvas');
-        this.x = novoX + canvas.width / 2 - this.largura / 2;
-        this.y = -novoY + canvas.height / 2 - this.altura / 2;
-    }
-
-    adicionarTextura(srcTextura) {
-        this.textura = srcTextura;
-        const img = new Image();
-        img.src = this.textura;
-        img.onload = () => {
-            this.texturaImagem = img;
-            desenharObjetosETextos();
-        };
-    }
-
-    alterarOpacidade(novaOpacidade) {
-        this.opacidade = novaOpacidade / 100;
-    }
-
-    alterarSombra(offsetX, offsetY, blur, color) {
-        this.sombra = { offsetX, offsetY, blur, color };
-    }
-
-    moverPassos(passos) {
-        const velocidadeBase = 50; // Velocidade base em pixels por segundo
-        const fatorVelocidade = 1.5; // Fator que aumenta a velocidade com mais passos
-
-        const anguloEmRadianos = (this.angulo * Math.PI) / 180;
-        const destinoX = this.x + passos * Math.cos(anguloEmRadianos);
-        const destinoY = this.y + passos * Math.sin(anguloEmRadianos);
-
-        const inicioX = this.x;
-        const inicioY = this.y;
-
-        const distancia = Math.sqrt(Math.pow(destinoX - inicioX, 2) + Math.pow(destinoY - inicioY, 2));
-
-        const velocidade = velocidadeBase * Math.pow(fatorVelocidade, passos / 100);
-
-        const duracao = (distancia / velocidade) * 1000;
-
-        const tempoInicio = performance.now();
-
-        const mover = (tempoAtual) => {
-            const progresso = Math.min((tempoAtual - tempoInicio) / duracao, 1);
-
-            this.x = inicioX + (destinoX - inicioX) * progresso;
-            this.y = inicioY + (destinoY - inicioY) * progresso;
-
-            desenharObjetosETextos(); // Redesenha os objetos
-
-            if (progresso < 1) {
-                requestAnimationFrame(mover);
-            }
-        };
-
-        requestAnimationFrame(mover);
-    }
-
-    alterarAngulo(novoAngulo) {
-        this.angulo = novoAngulo;
-    }
-
-    rotacionar(contexto, angulo) {
+        // Salvar o estado atual do contexto
         contexto.save();
+
+        // Mover o contexto para o centro do objeto
         contexto.translate(this.x + this.largura / 2, this.y + this.altura / 2);
-        contexto.rotate((angulo * Math.PI) / 180);
+
+        // Aplicar a rotação, usando o ângulo em radianos
+        contexto.rotate(this.angulo * Math.PI / 180);
+
+        // Voltar o contexto para sua posição original
         contexto.translate(-(this.x + this.largura / 2), -(this.y + this.altura / 2));
-        this.criarObjeto(contexto);
+
+        if (this.sprites.length) {  
+            contexto.drawImage(this.sprites[this.frame], this.x, this.y, this.largura, this.altura);  
+        } else if (this.texturaImagem) {  
+            contexto.drawImage(this.texturaImagem, this.x, this.y, this.largura, this.altura);  
+        } else {  
+            contexto.beginPath();  
+            let raio = Math.min(this.radius, this.largura / 2, this.altura / 2);  
+            contexto.moveTo(this.x + raio, this.y);  
+            contexto.lineTo(this.x + this.largura - raio, this.y);  
+            contexto.quadraticCurveTo(this.x + this.largura, this.y, this.x + this.largura, this.y + raio);  
+            contexto.lineTo(this.x + this.largura, this.y + this.altura - raio);  
+            contexto.quadraticCurveTo(this.x + this.largura, this.y + this.altura, this.x + this.largura - raio, this.y + this.altura);  
+            contexto.lineTo(this.x + raio, this.y + this.altura);  
+            contexto.quadraticCurveTo(this.x, this.y + this.altura, this.x, this.y + this.altura - raio);  
+            contexto.lineTo(this.x, this.y + raio);  
+            contexto.quadraticCurveTo(this.x, this.y, this.x + raio, this.y);  
+            contexto.fillStyle = this.cor;  
+            contexto.fill();  
+            contexto.lineWidth = 2;  
+            contexto.strokeStyle = this.borderColor;  
+            contexto.stroke();  
+            contexto.closePath();  
+        }  
+  
+        // Restaurar o estado do contexto
         contexto.restore();
-    }
+  
+        contexto.globalAlpha = 1.0;  
+        contexto.shadowOffsetX = 0;  
+        contexto.shadowOffsetY = 0;  
+        contexto.shadowBlur = 0;  
+        contexto.shadowColor = 'transparent';  
+    }  
+  
+    // Animação de sprites  
+    carregarSprites(spritePaths, callback) {  
+        let carregadas = 0;  
+        this.sprites = spritePaths.map((src) => {  
+            const img = new Image();  
+            img.src = src;  
+            img.onload = () => (++carregadas === spritePaths.length) && callback?.();  
+            return img;  
+        });  
+    }  
+  
+    iniciarAnimacao(contexto) {  
+        if (!this.animando) {  
+            this.animando = true;  
+            this.ultimoFrame = performance.now();  
+            this.animar(contexto, this.ultimoFrame);  
+        }  
+    }  
+  
+    animar(contexto, tempo) {  
+        if (!this.animando || !this.sprites.length) return;  
+        if (tempo - this.ultimoFrame > 1000 / this.frameRate) {  
+            this.frame = (this.frame + 1) % this.sprites.length;  
+            this.ultimoFrame = tempo;  
+        }  
+        this.criarObjeto(contexto);  
+        requestAnimationFrame((t) => this.animar(contexto, t));  
+    }  
+  
+    pararAnimacao() {  
+        this.animando = false;  
+    }  
 
-    posicaoAleatoria() {
-        const minX = -200;
-        const maxX = 200;
-        const minY = -360;
-        const maxY = 360;
-        const x = Math.random() * (maxX - minX) + minX;
-        const y = Math.random() * (maxY - minY) + minY;
-        this.x = x;
-        this.y = y;
-    }
-
-    alterarCamada(novaCamada) {
-        this.camada = novaCamada;
-    }
-
-    // Métodos para esconder e mostrar o objeto
-    esconder() {
-        this.visivel = false;
-    }
-
-    mostrar() {
-        this.visivel = true;
-    }
+    moverPassos(passos) {  
+        const anguloEmRadianos = (this.angulo * Math.PI) / 180;  
+        const deltaX = passos * Math.cos(anguloEmRadianos);  
+        const deltaY = passos * Math.sin(anguloEmRadianos);  
+  
+        this.x += deltaX;  
+        this.y += deltaY;  
+  
+        desenharObjetosETextos();  
+    }  
+  
+    // Métodos de propriedades  
+    alterarTamanho(novaLargura, novaAltura) {  
+        const deltaLargura = novaLargura - this.largura;  
+        const deltaAltura = novaAltura - this.altura;  
+        this.x -= deltaLargura / 2;  
+        this.y -= deltaAltura / 2;  
+  
+        this.largura = novaLargura;  
+        this.altura = novaAltura;  
+    }  
+  
+    Tamanho(tamanho) {  
+        const deltaLargura = tamanho - this.largura;  
+        const deltaAltura = tamanho - this.altura;  
+        this.x -= deltaLargura / 2;  
+        this.y -= deltaAltura / 2;  
+  
+        this.largura = tamanho;  
+        this.altura = tamanho;  
+    }  
+  
+    alterarCor(novaCor) {  
+        this.cor = novaCor;  
+    }  
+  
+    alterarCorBorda(novaCor) {  
+        this.borderColor = novaCor;  
+    }  
+  
+    centralizar(canvasWidth, canvasHeight) {  
+        this.x = canvasWidth / 2 - this.largura / 2;  
+        this.y = canvasHeight / 2 - this.altura / 2;  
+    }  
+  
+    mudarPosicao(novoX, novoY) {  
+        const canvas = document.getElementById('meuCanvas');  
+        this.x = novoX + canvas.width / 2 - this.largura / 2;  
+        this.y = -novoY + canvas.height / 2 - this.altura / 2;  
+    }  
+  
+    adicionarTextura(srcTextura) {  
+        this.textura = srcTextura;  
+        const img = new Image();  
+        img.src = this.textura;  
+        img.onload = () => {  
+            this.texturaImagem = img;  
+            desenharObjetosETextos();  
+        };  
+    }  
+  
+    alterarOpacidade(novaOpacidade) {  
+        this.opacidade = novaOpacidade / 100;  
+    }  
+  
+    alterarSombra(offsetX, offsetY, blur, color) {  
+        this.sombra = { offsetX, offsetY, blur, color };  
+    }  
+  
+    alterarAngulo(novoAngulo) {  
+        this.angulo = novoAngulo;  
+    }  
+  
+    posicaoAleatoria() {  
+        const minX = -200;  
+        const maxX = 200;  
+        const minY = -360;  
+        const maxY = 360;  
+        const x = Math.random() * (maxX - minX) + minX;  
+        const y = Math.random() * (maxY - minY) + minY;  
+        this.x = x;  
+        this.y = y;  
+    }  
+  
+    alterarCamada(novaCamada) {  
+        this.camada = novaCamada;  
+    }  
+  
+    esconder() {  
+        this.visivel = false;  
+    }  
+  
+    obterX() {  
+        return this.x + this.largura / 2;  
+    }  
+  
+    obterY() {  
+        return this.y + this.altura / 2;  
+    }  
 }
 
 class NovoTexto { 
