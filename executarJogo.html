@@ -737,19 +737,6 @@ async function interpretarBloco(bloco) {
             desenharObjetosETextos();
         }
     }
-} else if (bloco.content.includes('rotacionar')) {
-    const objetoValue = getValueOrVariable(bloco, 'nome');
-    const anguloValue = getValueOrVariable(bloco, 'angulo');
-
-    if (objetoValue && anguloValue) {
-        const angulo = Number(anguloValue);
-        const objeto = objetos.find(obj => obj.nome === objetoValue);
-
-        if (objeto) {
-            objeto.rotacionar(objeto, angulo)
-            desenharObjetosETextos();
-        }
-    }
 } else if (bloco.content.includes('mover')) {
     const objetoValue = getValueOrVariable(bloco, 'nome');
     const passosValue = getValueOrVariable(bloco, 'passos');
