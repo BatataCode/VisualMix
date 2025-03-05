@@ -34,62 +34,148 @@
             border-radius: 5px;
             cursor: pointer;
         }
-    </style>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const projetoIndex = urlParams.get('projetoIndex');
-            const scriptIndex = urlParams.get('scriptIndex');
-            const blockUID = urlParams.get('blockUID');
-            const index = parseInt(urlParams.get('index'), 10);
-            const directoryPath = '/storage/emulated/0/Download/VisualMix/Arquivos/';
-            const scriptKey = directoryPath + `scripts-${projetoIndex}-${scriptIndex}.json`;
-            
-            try {
-                // Carregar o bloco do localStorage ou similar
-                const blockDataString = Android.readFile(scriptKey);
-                const blockData = JSON.parse(blockDataString);
-                const block = blockData.find(b => b.id === blockUID);
-
-                if (block) {
-                    const value = block.values[index]?.value || '';
-                    document.getElementById('inputValue').value = value;
-
-                    document.getElementById('saveButton').addEventListener('click', function() {
-                        if (block.values[index]) {
-                            block.values[index].value = document.getElementById('inputValue').value;
-                            saveBlocksToFilePath(projetoIndex, scriptIndex, blockData);
-                            window.history.back();
-                        } else {
-                            alert('Índice inválido no bloco.');
-                        }
-                    });
-                } else {
-                    alert('Bloco não encontrado.');
-                }
-            } catch (error) {
-                console.error('Erro ao carregar ou processar dados do bloco:', error);
-                alert('Ocorreu um erro ao carregar os dados.');
-            }
-        });
-
-        function saveBlocksToFilePath(projetoIndex, scriptIndex, blockData) {
-            const directoryPath = '/storage/emulated/0/Download/VisualMix/Arquivos/';
-            const scriptKey = directoryPath + `scripts-${projetoIndex}-${scriptIndex}.json`;
-
-            try {
-                // Salva os blocos como uma string JSON no arquivo
-                Android.writeFile(scriptKey, JSON.stringify(blockData));
-            } catch (error) {
-                console.error('Erro ao salvar dados no arquivo:', error);
-                alert('Ocorreu um erro ao salvar os dados.');
-            }
+        .autocomplete-suggestions {
+            position: absolute;
+            background: white;
+            color: black;
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            width: calc(80% - 20px);
+            display: none;
+            z-index: 1000;
         }
-    </script>
+        .suggestion {
+            padding: 8px;
+            cursor: pointer;
+        }
+        .suggestion:hover {
+            background: #eee;
+        }
+    </style>
 </head>
 <body>
     <h1>Script Editor</h1>
     <textarea id="inputValue" placeholder="Digite sua lógica aqui..."></textarea>
+    <div id="autocomplete-list" class="autocomplete-suggestions"></div>
     <button id="saveButton">Salvar</button>
+
+    <script>
+        const keywords = [
+    "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete",
+    "do", "else", "export", "extends", "finally", "for", "function", "if()", "import", "in",
+    "instanceof", "let", "new", "return", "super", "switch", "this", "throw", "try", "typeof",
+    "var", "void", "while", "with", "yield", "async", "await", "constructor", "static",
+    "get", "set", "true", "false", "null", "undefined", "NaN", "Infinity",
+    "console.log()", "console.error()", "console.warn()", "console.table()",
+    "JSON.stringify()", "JSON.parse()",
+    "Math.PI", "Math.E", "Math.round()", "Math.floor()", "Math.ceil()", "Math.abs()", "Math.random()",
+    "Date()", "Date.now()", "Date.UTC()", "Date.parse()", 
+    "Object.keys()", "Object.values()", "Object.entries()", "Object.assign()",
+    "Array.isArray()", "Array.from()", "Array.prototype.push()", "Array.prototype.pop()",
+    "Array.prototype.shift()", "Array.prototype.unshift()", "Array.prototype.map()",
+    "Array.prototype.filter()", "Array.prototype.reduce()", "Array.prototype.forEach()",
+    "document.querySelector()", "document.getElementById()", "document.createElement()",
+    "window.alert()", "window.confirm()", "window.prompt()",
+    "localStorage.getItem()", "localStorage.setItem()", "sessionStorage.getItem()", "sessionStorage.setItem()",
+    "fetch()", "setTimeout()", "setInterval()", "clearTimeout()", "clearInterval()", 
+    "positionX()", "positionY()", "length()", "join()", "randomValue()", "letter()", "responseWeb()", "loadData()"
+];
+
+        const textarea = document.getElementById("inputValue");
+        const autocompleteList = document.getElementById("autocomplete-list");
+
+        function showSuggestions() {
+            const text = textarea.value;
+            const words = text.split(/\s+/);
+            const lastWord = words[words.length - 1].toLowerCase();
+
+            autocompleteList.innerHTML = "";
+            if (!lastWord) {
+                autocompleteList.style.display = "none";
+                return;
+            }
+
+            const filtered = keywords.filter(keyword => keyword.startsWith(lastWord));
+
+            if (filtered.length === 0) {
+                autocompleteList.style.display = "none";
+                return;
+            }
+
+            filtered.forEach(keyword => {
+                const div = document.createElement("div");
+                div.classList.add("suggestion");
+                div.textContent = keyword;
+                div.onclick = () => {
+                    words[words.length - 1] = keyword;
+                    textarea.value = words.join(" ") + " ";
+                    autocompleteList.style.display = "none";
+                };
+                autocompleteList.appendChild(div);
+            });
+
+            const rect = textarea.getBoundingClientRect();
+            autocompleteList.style.top = rect.bottom + "px";
+            autocompleteList.style.left = rect.left + "px";
+            autocompleteList.style.display = "block";
+        }
+
+        textarea.addEventListener("input", showSuggestions);
+
+        document.addEventListener("click", (e) => {
+            if (!textarea.contains(e.target) && !autocompleteList.contains(e.target)) {
+                autocompleteList.style.display = "none";
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {  
+            const urlParams = new URLSearchParams(window.location.search);  
+            const projetoIndex = urlParams.get('projetoIndex');  
+            const scriptIndex = urlParams.get('scriptIndex');  
+            const blockUID = urlParams.get('blockUID');  
+            const index = parseInt(urlParams.get('index'), 10);  
+            const directoryPath = '/storage/emulated/0/Download/VisualMix/Arquivos/';  
+            const scriptKey = directoryPath + `scripts-${projetoIndex}-${scriptIndex}.json`;  try {  
+            // Carregar o bloco do localStorage ou similar  
+            const blockDataString = Android.readFile(scriptKey);  
+            const blockData = JSON.parse(blockDataString);  
+            const block = blockData.find(b => b.id === blockUID);  
+
+            if (block) {  
+                const value = block.values[index]?.value || '';  
+                document.getElementById('inputValue').value = value;  
+
+                document.getElementById('saveButton').addEventListener('click', function() {  
+                    if (block.values[index]) {  
+                        block.values[index].value = document.getElementById('inputValue').value;  
+                        saveBlocksToFilePath(projetoIndex, scriptIndex, blockData);  
+                        window.history.back();  
+                    } else {  
+                        alert('Índice inválido no bloco.');  
+                    }  
+                });  
+            } else {  
+                alert('Bloco não encontrado.');  
+            }  
+        } catch (error) {  
+            console.error('Erro ao carregar ou processar dados do bloco:', error);  
+            alert('Ocorreu um erro ao carregar os dados.');  
+        }  
+    });  
+
+    function saveBlocksToFilePath(projetoIndex, scriptIndex, blockData) {  
+        const directoryPath = '/storage/emulated/0/Download/VisualMix/Arquivos/';  
+        const scriptKey = directoryPath + `scripts-${projetoIndex}-${scriptIndex}.json`;  
+
+        try {  
+            // Salva os blocos como uma string JSON no arquivo  
+            Android.writeFile(scriptKey, JSON.stringify(blockData));  
+        } catch (error) {  
+            console.error('Erro ao salvar dados no arquivo:', error);  
+            alert('Ocorreu um erro ao salvar os dados.');  
+        }  
+    }
+    </script>
 </body>
 </html>
