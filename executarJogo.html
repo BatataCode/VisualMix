@@ -981,124 +981,141 @@ function desenharObjetosETextos() {
     });
 }
         
-function getValueOrVariable(bloco, id) {
-    const value = bloco.values.find(value => value.id === id);
-    if (value) {
-        const rawValue = value.value;
-
-        if (/[\+\-\*\/]/.test(rawValue)) {
-            try {
-                const expression = rawValue.replace(/\$[a-zA-Z_]\w*/g, match => window[match.substring(1)]);
-                return eval(expression);
-            } catch (e) {
-                console.error('Erro ao avaliar expressão:', rawValue, e);
-                return null;
-            }
-        }
-
-        if (rawValue.startsWith('$')) {
-            return window[rawValue.substring(1)];
-        } else if (rawValue.startsWith('lista:')) {
-            const parts = rawValue.split(':');
-            const listaName = parts[1];
-            const indexRaw = parts[2];
-
-            if (indexRaw === 'todos') {
-                return getListaValue(listaName, 'todos');
-            } else {
-                const index = indexRaw.startsWith('$') ? window[indexRaw.substring(1)] : parseInt(indexRaw);
-                return getListaValue(listaName, index);
-            }
-        } else if (rawValue.startsWith('valorDados(') && rawValue.endsWith(')')) {
-            let chave = rawValue.substring(11, rawValue.length - 1);
-            if (chave.startsWith('$')) {
-                chave = window[chave.substring(1)];
-            }
-            return obterValo(chave);
-        } else if (rawValue.startsWith('respostaWeb(') && rawValue.endsWith(')')) {
-            let parametros = rawValue.substring(12, rawValue.length - 1).split(',');
-            let web = parametros[0].trim();
-            let chave = parametros[1] ? parametros[1].trim() : "";
-
-            if (web.startsWith('$')) {
-                web = window[web.substring(1)];
-            }
-
-            if (chave.startsWith('$')) {
-                chave = window[chave.substring(1)];
-            }
-
-            if (web && chave) {
-                obter(web, chave);
-                if (DadosDoSiteGlobal[chave] !== undefined) {
-                    return DadosDoSiteGlobal[chave];
-                }
-            }
-        } else if (rawValue.startsWith('letra(') && rawValue.endsWith(')')) {
-            let texto = rawValue.substring(6, rawValue.length - 1);
-            let index;
-
-            if (texto.includes(',')) {
-                const parts = texto.split(',');
-                texto = parts[0].trim();
-                index = parts[1].trim();
-
-                if (texto.startsWith('$')) {
-                    texto = window[texto.substring(1)];
-                }
-
-                if (index.startsWith('$')) {
-                    index = window[index.substring(1)];
-                }
-
-                index = parseInt(index, 10);
-            }
-
-            return Letra(texto, index);
-        } else if (rawValue.startsWith('comprimento(') && rawValue.endsWith(')')) {
-            let texto = rawValue.substring(12, rawValue.length - 1);
-            if (texto.startsWith('$')) {
-                texto = window[texto.substring(1)];
-            }
-            return ComprimentoTexto(texto);
-        } else if (rawValue.startsWith('juntar(') && rawValue.endsWith(')')) {
-    let parametros = rawValue.substring(7, rawValue.length - 1).split(',');
-    let texto1 = parametros[0].trim();
-    let texto2 = parametros[1] ? parametros[1].trim() : "";
-
-    if (texto1.startsWith('$')) {
-        const nomeVariavel1 = texto1.substring(1);
-        texto1 = window[nomeVariavel1] !== undefined ? window[nomeVariavel1] : null;
-    }
-
-    if (texto2.startsWith('$')) {
-        const nomeVariavel2 = texto2.substring(1);
-        texto2 = window[nomeVariavel2] !== undefined ? window[nomeVariavel2] : null;
-    }
-
-    texto1 = String(texto1);
-    texto2 = String(texto2);
-
-    return Juntar(texto1, texto2);
-} else if (rawValue.startsWith("posiçãoX(") && rawValue.endsWith(")")) {  
-            let nomeObjeto = rawValue.substring(9, rawValue.length - 1).trim();  
-            let objeto = objetos.find(obj => obj.nome === nomeObjeto);  
-            if (objeto) {  
-                return objeto.obterX();  
-            }  
-        }  
-
-        // Verifica se é posiçãoY(nomeDoObjeto)
-        if (rawValue.startsWith("posiçãoY(") && rawValue.endsWith(")")) {  
-            let nomeObjeto = rawValue.substring(9, rawValue.length - 1).trim();  
-            let objeto = objetos.find(obj => obj.nome === nomeObjeto);  
-            if (objeto) {  
-                return objeto.obterY();  
-            }  
-        } else {
-            return rawValue;
-        }
-    }
+function getValueOrVariable(bloco, id) {    
+    const value = bloco.values.find(value => value.id === id);    
+    if (value) {    
+        const rawValue = value.value;    
+    
+        if (/[\+\-\*\/]/.test(rawValue)) {    
+            try {    
+                const expression = rawValue.replace(/\$[a-zA-Z_]\w*/g, match => window[match.substring(1)]);    
+                return eval(expression);    
+            } catch (e) {    
+                console.error('Erro ao avaliar expressão:', rawValue, e);    
+                return null;    
+            }    
+        }    
+    
+        if (rawValue.startsWith('$')) {    
+            return window[rawValue.substring(1)];    
+        } else if (rawValue.startsWith('list:')) {    
+            const parts = rawValue.split(':');    
+            const listaName = parts[1];    
+            const indexRaw = parts[2];     
+    
+            if (indexRaw === 'all') {    
+                return getListaValue(listaName, 'all');    
+            } else {    
+                const index = indexRaw.startsWith('$') ? window[indexRaw.substring(1)] : parseInt(indexRaw);    
+                return getListaValue(listaName, index);    
+            }    
+        } else if (rawValue.startsWith('loadData(') && rawValue.endsWith(')')) {    
+            let chave = rawValue.substring(9, rawValue.length - 1);    
+            if (chave.startsWith('$')) {    
+                chave = window[chave.substring(1)];    
+            }    
+            return obterValo(chave);    
+        } else if (rawValue.startsWith('responseWeb(') && rawValue.endsWith(')')) {    
+            let parametros = rawValue.substring(12, rawValue.length - 1).split(',');    
+            let web = parametros[0].trim();    
+            let chave = parametros[1] ? parametros[1].trim() : "";    
+    
+            if (web.startsWith('$')) {    
+                web = window[web.substring(1)];    
+            }    
+    
+            if (chave.startsWith('$')) {    
+                chave = window[chave.substring(1)];    
+            }    
+    
+            if (web && chave) {    
+                obter(web, chave);    
+                if (DadosDoSiteGlobal[chave] !== undefined) {    
+                    return DadosDoSiteGlobal[chave];    
+                }    
+            }    
+        } else if (rawValue.startsWith('letter(') && rawValue.endsWith(')')) {    
+            let texto = rawValue.substring(7, rawValue.length - 1);    
+            let index;    
+    
+            if (texto.includes(',')) {    
+                const parts = texto.split(',');    
+                texto = parts[0].trim();    
+                index = parts[1].trim();    
+    
+                if (texto.startsWith('$')) {    
+                    texto = window[texto.substring(1)];    
+                }    
+    
+                if (index.startsWith('$')) {    
+                    index = window[index.substring(1)];    
+                }    
+    
+                index = parseInt(index, 10);    
+            }    
+    
+            return Letra(texto, index);    
+        } else if (rawValue.startsWith('length(') && rawValue.endsWith(')')) {    
+            let texto = rawValue.substring(7, rawValue.length - 1);    
+            if (texto.startsWith('$')) {    
+                texto = window[texto.substring(1)];    
+            }    
+            return ComprimentoTexto(texto);    
+        } else if (rawValue.startsWith('join(') && rawValue.endsWith(')')) {    
+    let parametros = rawValue.substring(5, rawValue.length - 1).split(',');    
+    let texto1 = parametros[0].trim();    
+    let texto2 = parametros[1] ? parametros[1].trim() : "";    
+    
+    if (texto1.startsWith('$')) {    
+        const nomeVariavel1 = texto1.substring(1);    
+        texto1 = window[nomeVariavel1] !== undefined ? window[nomeVariavel1] : null;    
+    }    
+    
+    if (texto2.startsWith('$')) {    
+        const nomeVariavel2 = texto2.substring(1);    
+        texto2 = window[nomeVariavel2] !== undefined ? window[nomeVariavel2] : null;    
+    }    
+    
+    texto1 = String(texto1);    
+    texto2 = String(texto2);    
+    
+    return Juntar(texto1, texto2);    
+} else if (rawValue.startsWith("positionX(") && rawValue.endsWith(")")) {      
+            let nomeObjeto = rawValue.substring(10, rawValue.length - 1).trim();      
+            let objeto = objetos.find(obj => obj.nome === nomeObjeto);      
+            if (objeto) {      
+                return objeto.obterX();      
+            }      
+        }      
+    
+        // Verifica se é posiçãoY(nomeDoObjeto)    
+        if (rawValue.startsWith("positionY(") && rawValue.endsWith(")")) {      
+            let nomeObjeto = rawValue.substring(10, rawValue.length - 1).trim();      
+            let objeto = objetos.find(obj => obj.nome === nomeObjeto);      
+            if (objeto) {      
+                return objeto.obterY();      
+            }      
+        } else if (rawValue.startsWith("randomValue(") && rawValue.endsWith(")")) {    
+    let parametros = rawValue.substring(12, rawValue.length - 1).split(',');    
+    let min = parametros[0].trim();    
+    let max = parametros[1].trim();    
+    
+    if (min.startsWith('$')) {    
+        min = window[min.substring(1)];    
+    }    
+    
+    if (max.startsWith('$')) {    
+        max = window[max.substring(1)];    
+    }    
+    
+    min = parseFloat(min);    
+    max = parseFloat(max);    
+    
+    return Math.floor(Math.random() * (max - min) + min);    
+} else {    
+            return rawValue;    
+        }    
+    }    
 }
 
 const scripts = [];
